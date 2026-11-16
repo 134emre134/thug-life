@@ -5,8 +5,7 @@ extends Node3D
 ## Structure: CameraRig (top_level) -> Yaw -> Pitch -> SpringArm3D -> Camera3D.
 ## Follows the target in _process. The target's position is sampled every
 ## physics tick and interpolated by hand with the physics interpolation
-## fraction, so it stays smooth at any frame rate without relying on
-## get_global_transform_interpolated() (which returned a stale position here).
+## fraction, so it stays smooth at any frame rate.
 ##
 ## The SpringArm3D node holds the arm settings (shape, mask, margin) but the
 ## collision sweep is done here in _process instead of by the node's own
