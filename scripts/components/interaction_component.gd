@@ -54,7 +54,7 @@ func update(view_origin: Vector3, view_direction: Vector3) -> void:
 		var facing := flat_view.dot(flat.normalized()) if flat.length_squared() > 0.0001 else 1.0
 		if distance > close_range and facing < min_dot:
 			continue
-		var score := facing - distance * distance_weight + candidate.priority
+		var score := facing - distance * distance_weight + candidate.focus_priority
 		if score <= best_score:
 			continue
 		if require_line_of_sight and not _has_line_of_sight(view_origin, candidate):

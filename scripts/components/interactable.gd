@@ -21,7 +21,7 @@ const LAYER_INTERACTABLE := 1 << 3  # physics layer 4 "interactable"
 ## Disable automatically after the first successful interaction.
 @export var one_shot: bool = false
 ## Added to the target score; use to favour important objects that overlap others.
-@export var priority: float = 0.0
+@export var focus_priority: float = 0.0
 ## Optional point used for distance / line-of-sight checks. Defaults to this node.
 @export var focus_point: Node3D
 
