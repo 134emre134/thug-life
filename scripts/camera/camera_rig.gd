@@ -3,8 +3,10 @@ extends Node3D
 ## Over-the-shoulder camera rig.
 ##
 ## Structure: CameraRig (top_level) -> Yaw -> Pitch -> SpringArm3D -> Camera3D.
-## Follows the target's *interpolated* transform in _process, so it stays
-## smooth with physics interpolation at any frame rate.
+## Follows the target in _process. The target's position is sampled every
+## physics tick and interpolated by hand with the physics interpolation
+## fraction, so it stays smooth at any frame rate without relying on
+## get_global_transform_interpolated() (which returned a stale position here).
 ##
 ## The SpringArm3D node holds the arm settings (shape, mask, margin) but the
 ## collision sweep is done here in _process instead of by the node's own
@@ -70,6 +72,8 @@ var _aim_tween: Tween
 var _shoulder_tween: Tween
 var _exclude: Array[RID] = []
 var _probe := PhysicsShapeQueryParameters3D.new()
+var _target_prev := Vector3.ZERO
+var _target_curr := Vector3.ZERO
 
 @onready var spring_arm: SpringArm3D = $Yaw/Pitch/SpringArm3D
 @onready var camera: Camera3D = $Yaw/Pitch/SpringArm3D/Camera3D
@@ -78,6 +82,8 @@ var _probe := PhysicsShapeQueryParameters3D.new()
 
 
 func _ready() -> void:
+	if target == null:
+		target = get_parent() as Node3D
 	top_level = true
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	# We sweep ourselves (see class docs); keep the node only as data holder.
@@ -93,6 +99,8 @@ func _ready() -> void:
 	_target_side = _shoulder_side
 	_current_distance = normal_distance
 	if target:
+		_target_prev = target.global_position
+		_target_curr = _target_prev
 		global_position = target.global_position + Vector3.UP * pivot_height
 		yaw = target.global_rotation.y
 	_update_rig(0.0)
@@ -108,6 +116,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			deg_to_rad(min_pitch_degrees),
 			deg_to_rad(max_pitch_degrees)
 		)
+
+
+func _physics_process(_delta: float) -> void:
+	# Runs after the parent body moved this tick (parents process before children).
+	if target:
+		_target_prev = _target_curr
+		_target_curr = target.global_position
 
 
 func _process(delta: float) -> void:
@@ -155,7 +170,8 @@ func get_yaw_basis() -> Basis:
 func _follow_target(delta: float) -> void:
 	if target == null:
 		return
-	var goal := target.get_global_transform_interpolated().origin + Vector3.UP * pivot_height
+	var fraction := Engine.get_physics_interpolation_fraction()
+	var goal := _target_prev.lerp(_target_curr, fraction) + Vector3.UP * pivot_height
 	var pos := global_position
 	pos.x = goal.x
 	pos.z = goal.z
