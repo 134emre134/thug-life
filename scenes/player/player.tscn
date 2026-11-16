@@ -120,7 +120,7 @@ parameters/strafe/blend_position = Vector2(0, 0)
 parameters/aim_blend/blend_amount = 0
 parameters/air_blend/blend_amount = 0
 
-[node name="Movement" type="Node" parent="."]
+[node name="Movement" type="Node" parent="." node_paths=PackedStringArray("body", "model")]
 script = ExtResource("22_player_movement")
 body = NodePath("..")
 model = NodePath("../Model")
@@ -135,13 +135,13 @@ script = ExtResource("24_interaction_component")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("SphereShape3D_reach")
 
-[node name="Animator" type="Node" parent="."]
+[node name="Animator" type="Node" parent="." node_paths=PackedStringArray("animation_tree", "body", "model")]
 script = ExtResource("25_player_animator")
 animation_tree = NodePath("../AnimationTree")
 body = NodePath("..")
 model = NodePath("../Model")
 
-[node name="CameraRig" type="Node3D" parent="."]
+[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("target")]
 script = ExtResource("26_camera_rig")
 target = NodePath("..")
 

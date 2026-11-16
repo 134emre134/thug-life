@@ -86,6 +86,8 @@ func _ready() -> void:
 	if body == null:
 		body = get_parent() as CharacterBody3D
 	assert(body != null, "PlayerMovement needs a CharacterBody3D")
+	if model == null:
+		push_warning("PlayerMovement: no model assigned, the character will not turn.")
 	body.floor_max_angle = deg_to_rad(max_slope_degrees)
 	body.floor_snap_length = floor_snap_length
 	body.floor_constant_speed = true

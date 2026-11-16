@@ -34,6 +34,13 @@ var _air: float = 0.0
 var _air_time: float = 0.0
 
 
+func _ready() -> void:
+	if animation_tree == null or body == null or model == null:
+		push_warning(
+			"PlayerAnimator: animation_tree, body or model not assigned; animation is off."
+		)
+
+
 func update(delta: float, aiming: bool) -> void:
 	if animation_tree == null or body == null or model == null:
 		return

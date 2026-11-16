@@ -672,7 +672,7 @@ transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -6, 0, -2)
 [node name="Player" parent="." instance=ExtResource("7_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
-[node name="HUD" parent="." instance=ExtResource("8_hud")]
+[node name="HUD" parent="." node_paths=PackedStringArray("player") instance=ExtResource("8_hud")]
 player = NodePath("../Player")
 
 [connection signal="pressed" from="Interactables/SpawnButton" to="Interactables/PropSpawner" method="spawn"]
