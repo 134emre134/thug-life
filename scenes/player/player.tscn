@@ -1,0 +1,162 @@
+[gd_scene format=3]
+
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mannequin_placeholder.tres" id="1_mannequin_placeholder"]
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="20_player"]
+[ext_resource type="PackedScene" path="res://scenes/player/mannequin.tscn" id="21_mannequin"]
+[ext_resource type="Script" path="res://scripts/player/player_movement.gd" id="22_player_movement"]
+[ext_resource type="Script" path="res://scripts/player/player_aim.gd" id="23_player_aim"]
+[ext_resource type="Script" path="res://scripts/components/interaction_component.gd" id="24_interaction_component"]
+[ext_resource type="Script" path="res://scripts/player/player_animator.gd" id="25_player_animator"]
+[ext_resource type="Script" path="res://scripts/camera/camera_rig.gd" id="26_camera_rig"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_idle"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_walk"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_run"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_sprint"]
+animation = &"sprint"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_locomotion"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_idle")
+blend_point_0/pos = 0
+blend_point_1/node = SubResource("AnimationNodeAnimation_walk")
+blend_point_1/pos = 2
+blend_point_2/node = SubResource("AnimationNodeAnimation_run")
+blend_point_2/pos = 4.5
+blend_point_3/node = SubResource("AnimationNodeAnimation_sprint")
+blend_point_3/pos = 7
+min_space = 0
+max_space = 8
+value_label = "speed (m/s)"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_idle"]
+animation = &"aim_idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_forward"]
+animation = &"aim_forward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_backward"]
+animation = &"aim_backward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_right"]
+animation = &"aim_right"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_left"]
+animation = &"aim_left"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="AnimationNodeBlendSpace2D_strafe"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_aim_idle")
+blend_point_0/pos = Vector2(0, 0)
+blend_point_1/node = SubResource("AnimationNodeAnimation_aim_forward")
+blend_point_1/pos = Vector2(0, 2.5)
+blend_point_2/node = SubResource("AnimationNodeAnimation_aim_backward")
+blend_point_2/pos = Vector2(0, -2.5)
+blend_point_3/node = SubResource("AnimationNodeAnimation_aim_right")
+blend_point_3/pos = Vector2(2.5, 0)
+blend_point_4/node = SubResource("AnimationNodeAnimation_aim_left")
+blend_point_4/pos = Vector2(-2.5, 0)
+min_space = Vector2(-3, -3)
+max_space = Vector2(3, 3)
+x_label = "right (m/s)"
+y_label = "forward (m/s)"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_aim_blend"]
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_air_blend"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_fall"]
+animation = &"fall"
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_root"]
+nodes/locomotion/node = SubResource("AnimationNodeBlendSpace1D_locomotion")
+nodes/locomotion/position = Vector2(-400, 0)
+nodes/strafe/node = SubResource("AnimationNodeBlendSpace2D_strafe")
+nodes/strafe/position = Vector2(-400, 200)
+nodes/aim_blend/node = SubResource("AnimationNodeBlend2_aim_blend")
+nodes/aim_blend/position = Vector2(-150, 60)
+nodes/fall/node = SubResource("AnimationNodeAnimation_fall")
+nodes/fall/position = Vector2(-150, 260)
+nodes/air_blend/node = SubResource("AnimationNodeBlend2_air_blend")
+nodes/air_blend/position = Vector2(100, 60)
+nodes/output/position = Vector2(340, 60)
+node_connections = [&"aim_blend", 0, &"locomotion", &"aim_blend", 1, &"strafe", &"air_blend", 0, &"aim_blend", &"air_blend", 1, &"fall", &"output", 0, &"air_blend"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_reach"]
+radius = 1.8
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_arm"]
+radius = 0.2
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 21
+script = ExtResource("20_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Mannequin" parent="Model" instance=ExtResource("21_mannequin")]
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+root_node = NodePath("../Model/Mannequin")
+libraries = {
+&"": ExtResource("1_mannequin_placeholder")
+}
+tree_root = SubResource("AnimationNodeBlendTree_root")
+parameters/locomotion/blend_position = 0
+parameters/strafe/blend_position = Vector2(0, 0)
+parameters/aim_blend/blend_amount = 0
+parameters/air_blend/blend_amount = 0
+
+[node name="Movement" type="Node" parent="." node_paths=PackedStringArray("body", "model")]
+script = ExtResource("22_player_movement")
+body = NodePath("..")
+model = NodePath("../Model")
+
+[node name="Aim" type="Node" parent="."]
+script = ExtResource("23_player_aim")
+
+[node name="Interaction" type="Area3D" parent="."]
+script = ExtResource("24_interaction_component")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interaction"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("SphereShape3D_reach")
+
+[node name="Animator" type="Node" parent="." node_paths=PackedStringArray("animation_tree", "body", "model")]
+script = ExtResource("25_player_animator")
+animation_tree = NodePath("../AnimationTree")
+body = NodePath("..")
+model = NodePath("../Model")
+
+[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("26_camera_rig")
+target = NodePath("..")
+
+[node name="Yaw" type="Node3D" parent="CameraRig"]
+
+[node name="Pitch" type="Node3D" parent="CameraRig/Yaw"]
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraRig/Yaw/Pitch"]
+collision_mask = 1
+shape = SubResource("SphereShape3D_arm")
+spring_length = 0
+margin = 0.1
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/Yaw/Pitch/SpringArm3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3.2)
+current = true
+fov = 70
+near = 0.05

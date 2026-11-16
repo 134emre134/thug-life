@@ -117,8 +117,8 @@ Rationale: build the gameplay skeleton (movement, aiming, interaction) first, th
 
 | # | Milestone | Content |
 |---|-----------|---------|
-| M0 | Setup | Godot, VS Code, GitHub, folder structure ✅ (structure pending) |
-| M1 | Character skeleton | Locomotion, camera, aim mode, interaction, basic physics, placeholder animation — in a gray-box test level |
+| M0 | Setup | Godot, VS Code, GitHub, folder structure ✅ |
+| M1 | Character skeleton | Locomotion, camera, aim mode, interaction, basic physics, placeholder animation — in a gray-box test level 🔧 (implemented; Mixamo model + playtest tuning pending) |
 | M2 | District & first crime | Block-out district, walking NPCs, pickpocketing → witness → report → heat level 1 |
 | — | _Gate_ | _Define Core Loop (§5) before M3_ |
 | M3 | Combat prototype | One melee + one firearm, hit reactions, ragdolls, basic enemy AI |

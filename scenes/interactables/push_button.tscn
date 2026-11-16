@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_wall.tres" id="2_graybox_wall"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/hazard.tres" id="4_hazard"]
+[ext_resource type="Script" path="res://scripts/interactables/push_button.gd" id="7_push_button"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="8_interactable"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ped"]
+size = Vector3(0.4, 1, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ped"]
+size = Vector3(0.4, 1, 0.4)
+material = ExtResource("2_graybox_wall")
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_cap"]
+top_radius = 0.1
+bottom_radius = 0.1
+height = 0.06
+material = ExtResource("4_hazard")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_zone"]
+radius = 0.45
+
+[node name="PushButton" type="Node3D"]
+script = ExtResource("7_push_button")
+
+[node name="Pedestal" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Pedestal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_ped")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Pedestal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_ped")
+
+[node name="Cap" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.03, 0)
+mesh = SubResource("CylinderMesh_cap")
+
+[node name="Interactable" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+script = ExtResource("8_interactable")
+prompt_text = "Press"
+one_shot = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_zone")

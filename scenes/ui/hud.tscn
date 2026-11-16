@@ -1,0 +1,111 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/ui/crosshair.gd" id="6_crosshair"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_prompt"]
+font_size = 22
+outline_size = 6
+outline_color = Color(0, 0, 0, 0.85)
+
+[sub_resource type="LabelSettings" id="LabelSettings_note"]
+font_size = 24
+font_color = Color(1, 0.9, 0.4, 1)
+outline_size = 6
+outline_color = Color(0, 0, 0, 0.85)
+
+[sub_resource type="LabelSettings" id="LabelSettings_debug"]
+font_size = 14
+outline_size = 4
+outline_color = Color(0, 0, 0, 0.9)
+
+[sub_resource type="LabelSettings" id="LabelSettings_block"]
+font_size = 22
+font_color = Color(1, 0.25, 0.2, 1)
+outline_size = 4
+outline_color = Color(0, 0, 0, 0.9)
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("5_hud")
+
+[node name="Crosshair" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1
+anchor_bottom = 1
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_crosshair")
+
+[node name="BlockedMarker" type="Label" parent="."]
+layout_mode = 3
+offset_right = 24
+offset_bottom = 24
+mouse_filter = 2
+text = "x"
+label_settings = SubResource("LabelSettings_block")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Prompt" type="Label" parent="."]
+layout_mode = 3
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1
+anchor_right = 0.5
+anchor_bottom = 1
+offset_left = -200
+offset_top = -120
+offset_right = 200
+offset_bottom = -88
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+text = "[E] Interact"
+label_settings = SubResource("LabelSettings_prompt")
+horizontal_alignment = 1
+
+[node name="Notification" type="Label" parent="."]
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300
+offset_top = 60
+offset_right = 300
+offset_bottom = 96
+grow_horizontal = 2
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_note")
+horizontal_alignment = 1
+
+[node name="Debug" type="Label" parent="."]
+layout_mode = 3
+offset_left = 12
+offset_top = 12
+offset_right = 412
+offset_bottom = 252
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_debug")
+
+[node name="Help" type="Label" parent="."]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1
+anchor_top = 1
+anchor_right = 1
+anchor_bottom = 1
+offset_left = -330
+offset_top = -150
+offset_right = -12
+offset_bottom = -12
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+label_settings = SubResource("LabelSettings_debug")
+horizontal_alignment = 2
+vertical_alignment = 2
+text = "WASD move · Shift sprint · Ctrl walk · Space jump
+RMB aim · Q swap shoulder · E interact
+F3 debug · Esc release mouse"

@@ -1,0 +1,34 @@
+[gd_scene format=3]
+
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/hazard.tres" id="2_hazard"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/interactable.tres" id="4_interactable"]
+[ext_resource type="Script" path="res://scripts/interactables/knockback_pad.gd" id="6_knockback_pad"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pad"]
+size = Vector3(2, 0.6, 2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pad"]
+size = Vector3(2, 0.05, 2)
+material = ExtResource("2_hazard")
+
+[sub_resource type="PrismMesh" id="PrismMesh_arrow"]
+size = Vector3(0.8, 0.9, 0.06)
+material = ExtResource("4_interactable")
+
+[node name="KnockbackPad" type="Area3D"]
+collision_layer = 0
+collision_mask = 22
+monitorable = false
+script = ExtResource("6_knockback_pad")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+shape = SubResource("BoxShape3D_pad")
+
+[node name="Pad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.025, 0)
+mesh = SubResource("BoxMesh_pad")
+
+[node name="Arrow" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.06, 0)
+mesh = SubResource("PrismMesh_arrow")
