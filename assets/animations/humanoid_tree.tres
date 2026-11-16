@@ -1,0 +1,247 @@
+[gd_resource type="AnimationNodeBlendTree" format=3]
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_3frgv"]
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_fief5"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_sorpp"]
+animation = &"combat/bat_1"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_n1spt"]
+animation = &"combat/bat_2"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_26v0s"]
+animation = &"combat/bat_3"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_gaaqg"]
+animation = &"combat/bat_guard"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_5nf30"]
+animation = &"combat/bat_heavy"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_j8ybi"]
+animation = &"combat/dodge"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_b1daw"]
+animation = &"combat/flinch"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_cs4ee"]
+animation = &"combat/get_up"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_4uoqs"]
+animation = &"combat/guard"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_4qqfg"]
+animation = &"combat/knockdown"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_0tqbv"]
+animation = &"combat/punch_1"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_x17aq"]
+animation = &"combat/punch_2"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_eh50s"]
+animation = &"combat/punch_3"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_45gdb"]
+animation = &"combat/punch_heavy"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_spv6l"]
+animation = &"combat/stagger"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_7hrmn"]
+
+[sub_resource type="AnimationNodeTransition" id="AnimationNodeTransition_yy5fi"]
+xfade_time = 0.06
+allow_transition_to_self = true
+input_0/name = "bat_1"
+input_0/auto_advance = false
+input_0/break_loop_at_end = false
+input_0/reset = true
+input_1/name = "bat_2"
+input_1/auto_advance = false
+input_1/break_loop_at_end = false
+input_1/reset = true
+input_2/name = "bat_3"
+input_2/auto_advance = false
+input_2/break_loop_at_end = false
+input_2/reset = true
+input_3/name = "bat_heavy"
+input_3/auto_advance = false
+input_3/break_loop_at_end = false
+input_3/reset = true
+input_4/name = "dodge"
+input_4/auto_advance = false
+input_4/break_loop_at_end = false
+input_4/reset = true
+input_5/name = "flinch"
+input_5/auto_advance = false
+input_5/break_loop_at_end = false
+input_5/reset = true
+input_6/name = "get_up"
+input_6/auto_advance = false
+input_6/break_loop_at_end = false
+input_6/reset = true
+input_7/name = "knockdown"
+input_7/auto_advance = false
+input_7/break_loop_at_end = false
+input_7/reset = true
+input_8/name = "punch_1"
+input_8/auto_advance = false
+input_8/break_loop_at_end = false
+input_8/reset = true
+input_9/name = "punch_2"
+input_9/auto_advance = false
+input_9/break_loop_at_end = false
+input_9/reset = true
+input_10/name = "punch_3"
+input_10/auto_advance = false
+input_10/break_loop_at_end = false
+input_10/reset = true
+input_11/name = "punch_heavy"
+input_11/auto_advance = false
+input_11/break_loop_at_end = false
+input_11/reset = true
+input_12/name = "stagger"
+input_12/auto_advance = false
+input_12/break_loop_at_end = false
+input_12/reset = true
+
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_h8pbp"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_552s0"]
+animation = &"fall"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_qnq1g"]
+filter_enabled = true
+filters = ["Hips/Torso/ArmL:rotation", "Hips/Torso/ArmR:rotation", "Hips/Torso/Head:rotation", "Hips/Torso:rotation"]
+
+[sub_resource type="AnimationNodeTransition" id="AnimationNodeTransition_25ux1"]
+xfade_time = 0.15
+input_0/name = "guard"
+input_0/auto_advance = false
+input_0/break_loop_at_end = false
+input_0/reset = true
+input_1/name = "bat_guard"
+input_1/auto_advance = false
+input_1/break_loop_at_end = false
+input_1/reset = true
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_h62xn"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_4kphx"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_rrhsl"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_8x6ce"]
+animation = &"sprint"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_wkoms"]
+min_space = 0.0
+max_space = 8.0
+value_label = "speed (m/s)"
+blend_point_0/node = SubResource("AnimationNodeAnimation_h62xn")
+blend_point_0/pos = 0.0
+blend_point_0/name = &"0"
+blend_point_1/node = SubResource("AnimationNodeAnimation_4kphx")
+blend_point_1/pos = 2.0
+blend_point_1/name = &"1"
+blend_point_2/node = SubResource("AnimationNodeAnimation_rrhsl")
+blend_point_2/pos = 4.5
+blend_point_2/name = &"2"
+blend_point_3/node = SubResource("AnimationNodeAnimation_8x6ce")
+blend_point_3/pos = 7.0
+blend_point_3/name = &"3"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_f250a"]
+animation = &"aim_idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2iv1p"]
+animation = &"aim_forward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_6dsqg"]
+animation = &"aim_backward"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_buak8"]
+animation = &"aim_right"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_1pmgc"]
+animation = &"aim_left"
+
+[sub_resource type="AnimationNodeBlendSpace2D" id="AnimationNodeBlendSpace2D_ktn14"]
+min_space = Vector2(-3, -3)
+max_space = Vector2(3, 3)
+x_label = "right (m/s)"
+y_label = "forward (m/s)"
+blend_point_0/node = SubResource("AnimationNodeAnimation_f250a")
+blend_point_0/pos = Vector2(0, 0)
+blend_point_0/name = &"0"
+blend_point_1/node = SubResource("AnimationNodeAnimation_2iv1p")
+blend_point_1/pos = Vector2(0, 2.5)
+blend_point_1/name = &"1"
+blend_point_2/node = SubResource("AnimationNodeAnimation_6dsqg")
+blend_point_2/pos = Vector2(0, -2.5)
+blend_point_2/name = &"2"
+blend_point_3/node = SubResource("AnimationNodeAnimation_buak8")
+blend_point_3/pos = Vector2(2.5, 0)
+blend_point_3/name = &"3"
+blend_point_4/node = SubResource("AnimationNodeAnimation_1pmgc")
+blend_point_4/pos = Vector2(-2.5, 0)
+blend_point_4/name = &"4"
+
+[resource]
+nodes/output/position = Vector2(1060, 60)
+nodes/locomotion/node = SubResource("AnimationNodeBlendSpace1D_wkoms")
+nodes/locomotion/position = Vector2(-400, 0)
+nodes/strafe/node = SubResource("AnimationNodeBlendSpace2D_ktn14")
+nodes/strafe/position = Vector2(-400, 200)
+nodes/aim_blend/node = SubResource("AnimationNodeBlend2_3frgv")
+nodes/aim_blend/position = Vector2(-150, 60)
+nodes/fall/node = SubResource("AnimationNodeAnimation_552s0")
+nodes/fall/position = Vector2(-150, 260)
+nodes/air_blend/node = SubResource("AnimationNodeBlend2_fief5")
+nodes/air_blend/position = Vector2(100, 60)
+nodes/guard_clip/node = SubResource("AnimationNodeTransition_25ux1")
+nodes/guard_clip/position = Vector2(100, 300)
+nodes/clip_guard/node = SubResource("AnimationNodeAnimation_4uoqs")
+nodes/clip_guard/position = Vector2(-150, 300)
+nodes/clip_bat_guard/node = SubResource("AnimationNodeAnimation_gaaqg")
+nodes/clip_bat_guard/position = Vector2(-150, 380)
+nodes/guard_blend/node = SubResource("AnimationNodeBlend2_qnq1g")
+nodes/guard_blend/position = Vector2(340, 60)
+nodes/combat_clip/node = SubResource("AnimationNodeTransition_yy5fi")
+nodes/combat_clip/position = Vector2(340, 400)
+nodes/clip_bat_1/node = SubResource("AnimationNodeAnimation_sorpp")
+nodes/clip_bat_1/position = Vector2(100, 500)
+nodes/clip_bat_2/node = SubResource("AnimationNodeAnimation_n1spt")
+nodes/clip_bat_2/position = Vector2(100, 580)
+nodes/clip_bat_3/node = SubResource("AnimationNodeAnimation_26v0s")
+nodes/clip_bat_3/position = Vector2(100, 660)
+nodes/clip_bat_heavy/node = SubResource("AnimationNodeAnimation_5nf30")
+nodes/clip_bat_heavy/position = Vector2(100, 740)
+nodes/clip_dodge/node = SubResource("AnimationNodeAnimation_j8ybi")
+nodes/clip_dodge/position = Vector2(100, 820)
+nodes/clip_flinch/node = SubResource("AnimationNodeAnimation_b1daw")
+nodes/clip_flinch/position = Vector2(100, 900)
+nodes/clip_get_up/node = SubResource("AnimationNodeAnimation_cs4ee")
+nodes/clip_get_up/position = Vector2(100, 980)
+nodes/clip_knockdown/node = SubResource("AnimationNodeAnimation_4qqfg")
+nodes/clip_knockdown/position = Vector2(100, 1060)
+nodes/clip_punch_1/node = SubResource("AnimationNodeAnimation_0tqbv")
+nodes/clip_punch_1/position = Vector2(100, 1140)
+nodes/clip_punch_2/node = SubResource("AnimationNodeAnimation_x17aq")
+nodes/clip_punch_2/position = Vector2(100, 1220)
+nodes/clip_punch_3/node = SubResource("AnimationNodeAnimation_eh50s")
+nodes/clip_punch_3/position = Vector2(100, 1300)
+nodes/clip_punch_heavy/node = SubResource("AnimationNodeAnimation_45gdb")
+nodes/clip_punch_heavy/position = Vector2(100, 1380)
+nodes/clip_stagger/node = SubResource("AnimationNodeAnimation_spv6l")
+nodes/clip_stagger/position = Vector2(100, 1460)
+nodes/combat_speed/node = SubResource("AnimationNodeTimeScale_h8pbp")
+nodes/combat_speed/position = Vector2(580, 400)
+nodes/combat_blend/node = SubResource("AnimationNodeBlend2_7hrmn")
+nodes/combat_blend/position = Vector2(820, 60)
+node_connections = [&"output", 0, &"combat_blend", &"aim_blend", 0, &"locomotion", &"aim_blend", 1, &"strafe", &"air_blend", 0, &"aim_blend", &"air_blend", 1, &"fall", &"guard_clip", 0, &"clip_guard", &"guard_clip", 1, &"clip_bat_guard", &"guard_blend", 0, &"air_blend", &"guard_blend", 1, &"guard_clip", &"combat_clip", 0, &"clip_bat_1", &"combat_clip", 1, &"clip_bat_2", &"combat_clip", 2, &"clip_bat_3", &"combat_clip", 3, &"clip_bat_heavy", &"combat_clip", 4, &"clip_dodge", &"combat_clip", 5, &"clip_flinch", &"combat_clip", 6, &"clip_get_up", &"combat_clip", 7, &"clip_knockdown", &"combat_clip", 8, &"clip_punch_1", &"combat_clip", 9, &"clip_punch_2", &"combat_clip", 10, &"clip_punch_3", &"combat_clip", 11, &"clip_punch_heavy", &"combat_clip", 12, &"clip_stagger", &"combat_speed", 0, &"combat_clip", &"combat_blend", 0, &"guard_blend", &"combat_blend", 1, &"combat_speed"]

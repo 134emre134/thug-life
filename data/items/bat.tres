@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1_weapon_data"]
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="2_attack_data"]
+[ext_resource type="Resource" path="res://data/attacks/bat_1.tres" id="3_bat_1"]
+[ext_resource type="Resource" path="res://data/attacks/bat_2.tres" id="4_bat_2"]
+[ext_resource type="Resource" path="res://data/attacks/bat_3.tres" id="5_bat_3"]
+[ext_resource type="Resource" path="res://data/attacks/bat_heavy.tres" id="6_bat_heavy"]
+[ext_resource type="PackedScene" path="res://scenes/props/bat_model.tscn" id="7_bat_model"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/weapon_pickup_bat.tscn" id="8_bat_pickup"]
+
+[resource]
+script = ExtResource("1_weapon_data")
+light_combo = Array[ExtResource("2_attack_data")]([ExtResource("3_bat_1"), ExtResource("4_bat_2"), ExtResource("5_bat_3")])
+heavy_attack = ExtResource("6_bat_heavy")
+guard_clip = &"bat_guard"
+held_scene = ExtResource("7_bat_model")
+pickup_scene = ExtResource("8_bat_pickup")
+id = &"bat"
+display_name = "Baseball bat"
+description = "Longer reach, slower swings, hits harder."
+value = 15

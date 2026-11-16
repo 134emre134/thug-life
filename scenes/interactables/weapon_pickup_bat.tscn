@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interactables/weapon_pickup.gd" id="1_weapon_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/props/bat_model.tscn" id="2_bat_model"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="3_interactable"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bat"]
+friction = 0.8
+bounce = 0.15
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_bat"]
+radius = 0.04
+height = 0.9
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_zone"]
+radius = 0.7
+
+[node name="WeaponPickupBat" type="RigidBody3D"]
+collision_layer = 4
+collision_mask = 23
+mass = 1.0
+physics_material_override = SubResource("PhysicsMaterial_bat")
+angular_damp = 1.0
+script = ExtResource("1_weapon_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_bat")
+
+[node name="BatModel" parent="." instance=ExtResource("2_bat_model")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.39, 0)
+
+[node name="Interactable" type="Area3D" parent="."]
+script = ExtResource("3_interactable")
+prompt_text = "Pick up"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_zone")

@@ -137,7 +137,7 @@ Rationale: build the gameplay skeleton (movement, aiming, interaction) first, th
 |---|-----------|---------|
 | M0 | Setup | Godot, VS Code, GitHub, folder structure ✅ |
 | M1 | Character skeleton | Locomotion, camera, aim mode, interaction, basic physics, placeholder animation — in a gray-box test level 🔧 (implemented; Mixamo model + playtest tuning pending) |
-| M2 | Melee combat | Fists + one blunt weapon, guard/dodge, hit reactions, knockout ragdolls, one melee enemy type with group behaviour — in a combat arena |
+| M2 | Melee combat | Fists + one blunt weapon, guard/dodge, hit reactions, knockout ragdolls, one melee enemy type with group behaviour — in a combat arena 🔧 (implemented on placeholder clips; Mixamo swap + playtest tuning pending) |
 | — | _Gate_ | _Define Core Loop (§5) and lethality (§7) before M3_ |
 | M3 | District & first crime | Block-out district, walking NPCs, pickpocketing → witness → report → heat level 1 |
 | M4 | Firearms | One firearm, cover decision (§7), ranged enemy behaviour, firearm use → heat |
@@ -186,6 +186,24 @@ Goal: one-on-one and one-against-three fights with fists and a bat feel weighty 
 - Player, enemies and later civilians/police share the same health, hurtbox and combat components
 
 **Out of scope for M2:** firearms, killing/lethal outcomes (§7 open), crime/heat integration (M3), stealth takedowns, finishers, stamina, skills/perks, bladed weapons, more than one enemy type.
+
+#### M2 implementation notes [Proposal: awaiting playtest]
+
+What was built, and where it deviates from the table above. All numbers are starting values in `.tres`/`@export`s, to be tuned in playtest.
+
+- **Deviation — M2.1 still uses the mannequin.** The Mixamo character and clips need an Adobe login and were not imported. All combat clips exist as procedural placeholders on the primitive mannequin (light combo ×3, heavy, guard, dodge, flinch, stagger, knockdown, get-up; unarmed and bat), in a combat layer on the AnimationTree, and play from a debug key (F4). The swap steps are in `CLAUDE.md`.
+- **Deviation — ragdoll without physical bones.** The mannequin has no skeleton, so knockouts spawn a rigid-body ragdoll built from the mannequin's parts (7 bodies, cone-twist joints). It switches to `PhysicalBoneSimulator3D` with the Mixamo skeleton.
+- **Bindings (proposed defaults kept):** LMB tap = light (fires on release), LMB hold 0.28 s = heavy, RMB = guard, Space while guarding = dodge (otherwise jump), G = drop weapon. **Added:** MMB = heavy directly (`attack_heavy`), so heavies don't wait for the hold time.
+- **Attack flow:** windup → active → recovery per `AttackData`. The next light attack chains during recovery or up to 0.25 s after it; one action is buffered for 0.3 s. Dodge cancels recovery. Attacks lunge toward the soft target (stop just inside reach) or step 0.25–0.4 m without one.
+- **Soft targeting:** best enemy within 5 m and ±60° of the camera direction, scored by angle and distance with a small bonus for the current target. A marker shows the current soft target.
+- **Guard:** blocks hits from a 150° front arc (no damage, half knockback, 0.15 s block stun). Heavy attacks break guard: 50% damage and a 0.9 s stagger.
+- **Dodge:** 2.4 m in 0.35 s in the move direction (backwards without input), invulnerable for the first 0.25 s.
+- **Reactions:** flinch 0.35 s → stagger 0.75 s → knockdown (fall 0.5 s, down 1.0 s, get-up 0.9 s, can't be hit while down) → knockout (ragdoll). Hits interrupt attacks (no hyper armour yet).
+- **Hit feel:** global hit stop (time scale 0.05 for 45–150 ms per attack), camera shake (trauma model), white/yellow hit flash, knockback impulse, and synthesized placeholder sounds: short bright slap (light), long deep thud (heavy/knockout), dry clack (block). `AttackData.hit_sound` overrides.
+- **Numbers:** player 150 HP, thug 100 HP, training dummy 400 HP. Fists 8/8/14, heavy 20 (reach 0.8 m). Bat 14/14/22, heavy 32 (reach 1.25–1.35 m, slower windups, finisher and heavy knock down).
+- **Enemy (thug):** own move set (`thug_fists`): jab with a 0.5 s windup, hook 0.38 s, heavy 0.75 s (breaks guard, knocks down). Attacks commit their direction at the start of the windup and the thug glows red during every windup. Approaches with navigation, circles at 3.2 m and spreads out around the player (about 70° apart), attacks only with a `CombatDirector` token (max 2 at once, at least 0.6 s between grants, 1.4 s cooldown per thug), backs off after 1–2 hits or a heavy (20%), guards against 35% of the attacks aimed at it. Thugs don't pick up weapons.
+- **Arena (`combat_gym.tscn`, now the main scene):** open area with cover and pillars, a 2.4 m wide alley, crates and barrels, two bats. F5 restarts the fight, F6 cycles 1 vs 3 → 1 vs 1 → training dummy (doesn't fight back). F3 shows health, state, attack phase, target and tokens for the player and above each thug.
+- **Tests:** `tests/combat_tests.tscn` checks the "Done when" criteria headless (combo, buffering, heavy, guard/break, dodge, targeting out of three, bat, knockdown, knockout/drop/ragdoll, max 2 attackers over 25 s of 1 vs 3, navigation, restart, M1 regression). Feel and readability still need a human playtest.
 
 ### M3 — District & first crime [Proposal: details]
 

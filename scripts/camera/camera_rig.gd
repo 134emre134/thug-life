@@ -13,6 +13,10 @@ extends Node3D
 ## classic source of camera jitter. Two sweeps are done: pivot -> shoulder
 ## (keeps the side offset out of walls in narrow corridors) and
 ## shoulder -> camera (the regular spring arm).
+##
+## Camera shake uses a "trauma" value (0..1) that decays over time; the
+## offset grows with trauma². It is applied to the Camera3D only, after the
+## collision sweep.
 
 ## Node to follow (usually the Player).
 @export var target: Node3D
@@ -57,6 +61,16 @@ extends Node3D
 ## How fast the arm extends again after an obstruction clears (m/s).
 @export var arm_return_speed: float = 10.0
 
+@export_group("Shake")
+## Max rotation offset at full trauma (degrees: pitch, yaw, roll).
+@export var shake_max_degrees: Vector3 = Vector3(2.5, 2.5, 3.5)
+## Max position offset at full trauma (metres, camera space).
+@export var shake_max_offset: float = 0.06
+## Trauma lost per second.
+@export var shake_decay: float = 1.8
+## Noise speed (higher = more jittery).
+@export var shake_frequency: float = 22.0
+
 ## Current yaw in radians (0 = looking toward -Z).
 var yaw: float = 0.0
 ## Current pitch in radians.
@@ -73,6 +87,9 @@ var _exclude: Array[RID] = []
 var _probe := PhysicsShapeQueryParameters3D.new()
 var _target_prev := Vector3.ZERO
 var _target_curr := Vector3.ZERO
+var _trauma: float = 0.0
+var _shake_time: float = 0.0
+var _shake_noise := FastNoiseLite.new()
 
 @onready var spring_arm: SpringArm3D = $Yaw/Pitch/SpringArm3D
 @onready var camera: Camera3D = $Yaw/Pitch/SpringArm3D/Camera3D
@@ -148,6 +165,15 @@ func set_aiming(aiming: bool) -> void:
 	_aim_tween.tween_property(self, "_aim_blend", goal, duration)
 
 
+## Adds camera shake trauma (0..1, clamped).
+func add_trauma(amount: float) -> void:
+	_trauma = clampf(_trauma + amount, 0.0, 1.0)
+
+
+func get_trauma() -> float:
+	return _trauma
+
+
 func swap_shoulder() -> void:
 	_target_side = -_target_side
 	if _shoulder_tween:
@@ -204,6 +230,27 @@ func _update_rig(delta: float) -> void:
 
 	spring_arm.position = arm_origin
 	camera.position = Vector3(0.0, 0.0, _current_distance)
+	_apply_shake(delta)
+
+
+func _apply_shake(delta: float) -> void:
+	_trauma = maxf(_trauma - shake_decay * delta, 0.0)
+	if _trauma <= 0.0:
+		camera.rotation = Vector3.ZERO
+		return
+	_shake_time += delta * shake_frequency
+	var amount := _trauma * _trauma
+	var n := func(channel: int) -> float:
+		return _shake_noise.get_noise_2d(_shake_time, channel * 100.0)
+	camera.rotation = (
+		Vector3(
+			deg_to_rad(shake_max_degrees.x) * n.call(0),
+			deg_to_rad(shake_max_degrees.y) * n.call(1),
+			deg_to_rad(shake_max_degrees.z) * n.call(2)
+		)
+		* amount
+	)
+	camera.position += Vector3(n.call(3), n.call(4), 0.0) * shake_max_offset * amount
 
 
 ## Returns the free fraction [0, 1] of [param motion] starting at [param from],

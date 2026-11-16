@@ -46,7 +46,9 @@ func update(view_origin: Vector3, view_direction: Vector3) -> void:
 
 	for area in get_overlapping_areas():
 		var candidate := area as Interactable
-		if candidate == null or not candidate.can_interact(owner as Node3D):
+		if candidate == null or not _is_usable(candidate):
+			continue
+		if not candidate.can_interact(owner as Node3D):
 			continue
 		var to_target := candidate.get_focus_position() - view_origin
 		var flat := Vector3(to_target.x, 0.0, to_target.z)
@@ -73,10 +75,18 @@ func update(view_origin: Vector3, view_direction: Vector3) -> void:
 
 ## Uses the current target. Returns true if something was triggered.
 func try_interact(interactor: Node3D) -> bool:
-	if not is_instance_valid(current_target) or not current_target.can_interact(interactor):
+	if not is_instance_valid(current_target) or not _is_usable(current_target):
+		return false
+	if not current_target.can_interact(interactor):
 		return false
 	current_target.interact(interactor)
 	return true
+
+
+## Interactables leaving the scene (picked up, level reset) can still be in the
+## overlap list for one physics tick.
+func _is_usable(candidate: Interactable) -> bool:
+	return candidate.is_inside_tree() and not candidate.is_queued_for_deletion()
 
 
 func _has_line_of_sight(from: Vector3, candidate: Interactable) -> bool:
