@@ -1,0 +1,678 @@
+[gd_scene format=3]
+
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_floor.tres" id="1_graybox_floor"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_wall.tres" id="2_graybox_wall"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_accent.tres" id="3_graybox_accent"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_cover.tres" id="4_graybox_cover"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_blocked.tres" id="5_graybox_blocked"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/target.tres" id="6_target"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="7_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="9_crate"]
+[ext_resource type="PackedScene" path="res://scenes/props/heavy_crate.tscn" id="10_heavy_crate"]
+[ext_resource type="PackedScene" path="res://scenes/props/barrel.tscn" id="11_barrel"]
+[ext_resource type="PackedScene" path="res://scenes/props/ball.tscn" id="12_ball"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/door.tscn" id="13_door"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/pickup.tscn" id="14_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/push_button.tscn" id="15_push_button"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/knockback_pad.tscn" id="16_knockback_pad"]
+[ext_resource type="Script" path="res://scripts/levels/test_gym.gd" id="20_test_gym"]
+[ext_resource type="Script" path="res://scripts/interactables/prop_spawner.gd" id="21_prop_spawner"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.38, 0.52, 0.72, 1)
+sky_horizon_color = Color(0.7, 0.72, 0.76, 1)
+ground_bottom_color = Color(0.2, 0.2, 0.22, 1)
+ground_horizon_color = Color(0.7, 0.72, 0.76, 1)
+
+[sub_resource type="Sky" id="Sky_sky"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_sky")
+ambient_light_source = 3
+reflected_light_source = 2
+tonemap_mode = 2
+ssao_enabled = true
+glow_enabled = false
+
+[node name="TestGym" type="Node3D"]
+script = ExtResource("20_test_gym")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.81915, 0.46985, -0.32899, 0, 0.57358, 0.81915, 0.57358, -0.67101, 0.46985, 0, 20, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 80
+
+[node name="Geometry" type="Node3D" parent="."]
+
+[node name="Floor" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(80, 1, 80)
+material = ExtResource("1_graybox_floor")
+
+[node name="WallN" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -40.5)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(82, 4, 1)
+material = ExtResource("2_graybox_wall")
+
+[node name="WallS" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 40.5)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(82, 4, 1)
+material = ExtResource("2_graybox_wall")
+
+[node name="WallE" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 2, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 4, 80)
+material = ExtResource("2_graybox_wall")
+
+[node name="WallW" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.5, 2, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 4, 80)
+material = ExtResource("2_graybox_wall")
+
+[node name="Step" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.0875, -8.15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.175, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.175, -8.45)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.35, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.2625, -8.75)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.525, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.35, -9.05)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.7, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step5" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.4375, -9.35)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.875, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step6" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.525, -9.65)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.05, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step7" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.6125, -9.95)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.225, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step8" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.7, -10.25)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.4, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step9" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.7875, -10.55)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.575, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step10" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.875, -10.85)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.75, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step11" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.9625, -11.15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.925, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step12" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 1.05, -11.45)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2.1, 0.3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Landing" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 1.05, -13.1)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2.1, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Step13" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.15, -8.175)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.3, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step14" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.3, -8.525)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.6, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step15" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.45, -8.875)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.9, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step16" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.6, -9.225)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.2, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step17" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.75, -9.575)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.5, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step18" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.9, -9.925)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.8, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step19" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 1.05, -10.275)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2.1, 0.35)
+material = ExtResource("3_graybox_accent")
+
+[node name="Landing2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 1.05, -11.95)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2.1, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Step20" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0.225, -8.225)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.45, 0.45)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step21" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0.45, -8.675)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.9, 0.45)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step22" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0.675, -9.125)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.35, 0.45)
+material = ExtResource("3_graybox_accent")
+
+[node name="Step23" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0.9, -9.575)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.8, 0.45)
+material = ExtResource("3_graybox_accent")
+
+[node name="Landing3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0.9, -11.3)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1.8, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Ramp" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.96593, -0.25882, 0, 0.25882, 0.96593, -8, 0.80681, -11.78382)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.4, 7.72741)
+material = ExtResource("3_graybox_accent")
+
+[node name="RampLanding" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1, -16.9641)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Ramp2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.86603, -0.5, 0, 0.5, 0.86603, -12.5, 0.82679, -9.83205)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.4, 4)
+material = ExtResource("3_graybox_accent")
+
+[node name="RampLanding2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.5, 1, -12.9641)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Ramp3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.70711, -0.70711, 0, 0.70711, 0.70711, -17, 0.85858, -9.14142)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.4, 2.82843)
+material = ExtResource("3_graybox_accent")
+
+[node name="RampLanding3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 1, -11.5)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Ramp4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 0.57358, -0.81915, 0, 0.81915, 0.57358, -21.5, 0.88528, -8.86404)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 0.4, 2.44155)
+material = ExtResource("5_graybox_blocked")
+
+[node name="RampLanding4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.5, 1, -10.90042)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 2, 3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Curb" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.05, -4)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.5, 0.1, 3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Curb2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.5, 0.1, -4)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.5, 0.2, 3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Curb3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.15, -4)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.5, 0.3, 3)
+material = ExtResource("3_graybox_accent")
+
+[node name="Curb4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.5, 0.2, -4)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.5, 0.4, 3)
+material = ExtResource("5_graybox_blocked")
+
+[node name="CorridorWallW" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.2, 1.5, -2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.3, 3, 16)
+material = ExtResource("2_graybox_wall")
+
+[node name="CorridorWallE" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.8, 1.5, -2.8)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.3, 3, 17.9)
+material = ExtResource("2_graybox_wall")
+
+[node name="CorridorCeiling" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 2.45, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.9, 0.3, 6)
+material = ExtResource("4_graybox_cover")
+
+[node name="CorridorTurnN" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.075, 1.5, -11.45)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(9.75, 3, 0.3)
+material = ExtResource("2_graybox_wall")
+
+[node name="CorridorTurnS" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.2, 1.5, -9.85)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(8, 3, 0.3)
+material = ExtResource("2_graybox_wall")
+
+[node name="LowCover" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.5, 12)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1, 0.5)
+material = ExtResource("4_graybox_cover")
+
+[node name="LowCover2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.5, 12)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1, 0.5)
+material = ExtResource("4_graybox_cover")
+
+[node name="LowCover3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 12)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1, 0.5)
+material = ExtResource("4_graybox_cover")
+
+[node name="LowCover4" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.5, 12)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 1, 0.5)
+material = ExtResource("4_graybox_cover")
+
+[node name="TallCover" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.25, 16)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2.5, 2.5, 0.5)
+material = ExtResource("4_graybox_cover")
+
+[node name="TallCover2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.25, 16)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2.5, 2.5, 0.5)
+material = ExtResource("4_graybox_cover")
+
+[node name="Pillar" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.5, 16)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 3, 0.6)
+material = ExtResource("4_graybox_cover")
+
+[node name="Pillar2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.5, 16)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 3, 0.6)
+material = ExtResource("4_graybox_cover")
+
+[node name="Target" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.5, 24)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 3, 0.1)
+material = ExtResource("6_target")
+
+[node name="Target2" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 30)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 3, 0.1)
+material = ExtResource("6_target")
+
+[node name="Target3" type="CSGBox3D" parent="Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 37)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 3, 0.1)
+material = ExtResource("6_target")
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="Sign1" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 4.2, -10)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "STAIRS"
+
+[node name="Sign2" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.75, 4.2, -10)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "RAMPS 15° / 30° / 45° / 55°"
+
+[node name="Sign3" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.75, 1.6, -4)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "CURBS 0.1–0.4 m"
+
+[node name="Sign4" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 3.6, 7)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "NARROW CORRIDOR"
+
+[node name="Sign5" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 2.5, 2)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "PHYSICS"
+
+[node name="Sign6" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 3.2, 4)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "INTERACTION"
+
+[node name="Sign7" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 3.2, 10)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "COVER / AIM"
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Crate1" parent="Props" instance=ExtResource("9_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.4, 4)
+
+[node name="Crate2" parent="Props" instance=ExtResource("9_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1.2, 4)
+
+[node name="Crate3" parent="Props" instance=ExtResource("9_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0.4, 5.2)
+
+[node name="Crate4" parent="Props" instance=ExtResource("9_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0.4, 5.2)
+
+[node name="Heavy5" parent="Props" instance=ExtResource("10_heavy_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.6, 4)
+
+[node name="Heavy6" parent="Props" instance=ExtResource("10_heavy_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.6, 6)
+
+[node name="Barrel7" parent="Props" instance=ExtResource("11_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.5, 7)
+
+[node name="Barrel8" parent="Props" instance=ExtResource("11_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.2, 0.5, 7.4)
+
+[node name="Barrel9" parent="Props" instance=ExtResource("11_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.8, 0.5, 7.6)
+
+[node name="Ball10" parent="Props" instance=ExtResource("12_ball")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.3, 7)
+
+[node name="Ball11" parent="Props" instance=ExtResource("12_ball")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.8, 0.3, 7.6)
+
+[node name="Ball12" parent="Props" instance=ExtResource("12_ball")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.6, 0.3, 8.2)
+
+[node name="Interactables" type="Node3D" parent="."]
+
+[node name="DoorWallW" type="CSGBox3D" parent="Interactables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.4, 1.5, 6)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4, 3, 0.3)
+material = ExtResource("2_graybox_wall")
+
+[node name="DoorWallE" type="CSGBox3D" parent="Interactables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.6, 1.5, 6)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4, 3, 0.3)
+material = ExtResource("2_graybox_wall")
+
+[node name="DoorLintel" type="CSGBox3D" parent="Interactables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 2.65, 6)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.2, 0.7, 0.3)
+material = ExtResource("2_graybox_wall")
+
+[node name="Door" parent="Interactables" instance=ExtResource("13_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.45, 0, 6)
+
+[node name="Pedestal" type="CSGBox3D" parent="Interactables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.45, 3)
+use_collision = true
+collision_mask = 0
+size = Vector3(0.6, 0.9, 0.6)
+material = ExtResource("2_graybox_wall")
+
+[node name="Pickup" parent="Interactables" instance=ExtResource("14_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.95, 3)
+
+[node name="SpawnButton" parent="Interactables" instance=ExtResource("15_push_button")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 2)
+prompt = "Drop a prop"
+
+[node name="PropSpawner" type="Marker3D" parent="Interactables"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 5, 2)
+script = ExtResource("21_prop_spawner")
+prop_scenes = Array[PackedScene]([ExtResource("9_crate"), ExtResource("11_barrel"), ExtResource("12_ball")])
+
+[node name="KnockbackPad" parent="Interactables" instance=ExtResource("16_knockback_pad")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -6, 0, -2)
+
+[node name="Player" parent="." instance=ExtResource("7_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="HUD" parent="." instance=ExtResource("8_hud")]
+player = NodePath("../Player")
+
+[connection signal="pressed" from="Interactables/SpawnButton" to="Interactables/PropSpawner" method="spawn"]
