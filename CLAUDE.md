@@ -20,10 +20,11 @@ Never treat an [Open] item as decided. If a task needs one, ask instead of inven
 |---|---|---|
 | M0 | Setup and folder structure | done |
 | M1 | Character skeleton (GDD §12, M1.1–M1.7) | implemented, needs playtest and tuning in the editor |
-| M2 | District and first crime (pickpocket → witness → report → heat 1) | next |
-| — | **Gate:** define the Core Loop (GDD §5) before M3 | |
-| M3 | Combat prototype | |
-| M4 | First progression loop | |
+| M2 | Melee combat (GDD §7, §12 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | next |
+| — | **Gate:** define the Core Loop (GDD §5) and lethality (GDD §7) before M3 | |
+| M3 | District and first crime (pickpocket → witness → report → heat 1) | |
+| M4 | Firearms | |
+| M5 | First progression loop | |
 
 Each milestone is built on its own branch and merged by PR. A task is done when its GDD "Done when" criterion works in the test level.
 
@@ -31,6 +32,7 @@ Each milestone is built on its own branch and merged by PR. A task is done when 
 
 - Main scene: `res://scenes/levels/test_gym.tscn` (gray-box gym, M1.1).
 - Controls (all bound in the InputMap, `project.godot` `[input]`): WASD move · Shift sprint · Ctrl walk · Space jump · RMB aim · Q swap shoulder · E interact · F3 debug overlay · Esc release mouse.
+- From M2 on, RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4). Keep `PlayerAim` intact, it is needed again in M4. Proposed M2 bindings are in GDD §12 M2.
 - Headless checks (CI or a cloud container):
   ```bash
   godot --headless --import            # (re)generate .godot/ cache and .uid files
@@ -49,7 +51,7 @@ assets/        art and audio. Binary formats go through Git LFS (.gitattributes)
   materials/   .tres materials (gray-box grid ShaderMaterials, solid colours)
   shaders/     .gdshader files
   models/ textures/ audio/
-data/          data-driven content as .tres/.json (items, later NPCs, crimes, ranks)
+data/          data-driven content as .tres/.json (items, attacks from M2, later NPCs, crimes, ranks)
 docs/          GDD and other design docs
 scenes/        .tscn, by feature: player/, levels/, interactables/, props/, ui/
 scripts/       .gd, mirrors scenes/ by feature:
@@ -61,14 +63,17 @@ Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `I
 
 ## Architecture rules
 
-1. **Components, not god scripts.** The player is a thin `CharacterBody3D` (`scripts/player/player.gd`) that reads input and passes **intent** to separate components: `PlayerMovement`, `CameraRig`, `PlayerAim`, `InteractionComponent`, `PlayerAnimator`. Components don't read `Input` directly (exceptions: the camera's mouse look, and UI). This lets NPC controllers drive the same components later.
-2. **Explicit update order.** `Player._physics_process` calls components in a fixed order: aim → movement → interaction → animation. The camera rig runs in `_process`.
+1. **Components, not god scripts.** The player is a thin `CharacterBody3D` (`scripts/player/player.gd`) that reads input and passes **intent** to separate components: `PlayerMovement`, `CameraRig`, `PlayerAim`, `InteractionComponent`, `PlayerAnimator`. Components don't read `Input` directly (exceptions: the camera's mouse look, and UI). This lets NPC controllers drive the same components: from M2 on, enemies use the same movement, health and combat components as the player. (`PlayerMovement` keeps its name for now; renaming it means a move through the Godot editor, so do it only when asked.)
+2. **Explicit update order.** `Player._physics_process` calls components in a fixed order: aim → movement → interaction → animation. From M2, combat runs before movement (aim/guard → combat → movement → interaction → animation), because attacks lock or drive movement (lunge). The camera rig runs in `_process`.
 3. **No hardcoded keys.** Every input goes through an InputMap action. New actions go in `project.godot` `[input]`.
 4. **Every tuning value is an `@export`** (grouped with `@export_group`) or lives in a Resource. No magic numbers in logic.
 5. **Data-first content.** Items, crimes, NPC types, factions and ranks are Resources in `data/` (e.g. `ItemData` → `data/items/*.tres`), never hardcoded.
 6. **No special cases in the player.** Interactive objects add an `Interactable` child (an Area3D on the `interactable` layer) and connect to its `interacted` signal. External effects use duck-typed methods such as `apply_knockback(impulse: Vector3)`.
 7. **Signals up, calls down.** A parent calls methods on its children. Children report back through signals. `Events` (autoload, `scripts/autoload/events.gd`) is reserved for cross-cutting fire-and-forget events (UI notifications, later crime events).
-8. Planned M2 systems from the GDD use these names: `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
+8. Planned system names from the GDD:
+   - **M2 (melee):** `HealthComponent`, `HitboxComponent`, `HurtboxComponent`, `MeleeCombat`, `CombatDirector` (attack tokens); resources `AttackData` (`data/attacks/*.tres`) and `WeaponData` (extends `ItemData`).
+   - **M3 (crime):** `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
+9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals (`hit_landed`, `knocked_out`). The M3 `CrimeManager` listens and turns them into crime events; no crime or heat code goes into combat components.
 
 ### Physics layers (`project.godot` `[layer_names]`)
 
@@ -78,7 +83,9 @@ Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `I
 | 2 | 2 | player | player body |
 | 3 | 4 | props | RigidBody3D props |
 | 4 | 8 | interactable | `Interactable` areas (detection only) |
-| 5 | 16 | npc | NPCs (M2) |
+| 5 | 16 | npc | NPCs and enemies (M2) |
+
+M2 adds separate hitbox and hurtbox layers (detection only); add them here and in `[layer_names]` when they land.
 
 The player body mask is world + props + npc. The camera sweep hits only `world`, so small props don't make the camera jitter. The aim ray hits world + props + npc.
 
@@ -91,13 +98,14 @@ The player body mask is world + props + npc. The camera sweep hits only `world`,
 - **Hand-edited `.tscn` files:** a Node-typed `@export` (e.g. `@export var model: Node3D`) is only resolved if its name is listed in the node header, as in `[node name="Movement" ... node_paths=PackedStringArray("body", "model")]`. Without it the property stays null and nothing reports an error. Prefer assigning these in the editor.
 - Stair stepping is done in code (`PlayerMovement._try_step_up`, `step_height` 0.35 m). Slopes up to `max_slope_degrees` (46°) are handled by `move_and_slide`. Rigid bodies are pushed, never stepped onto.
 
-### Swapping in the Mixamo character (M1.7 follow-up)
+### Swapping in the Mixamo character (M1.7 follow-up, now task M2.1)
 
 The mannequin in `scenes/player/mannequin.tscn` is a primitive-mesh stand-in with procedurally authored clips (`assets/animations/mannequin_placeholder.tres`). To replace it:
 1. Import the Mixamo FBX/GLB into `assets/models/` (it goes through LFS). Download the clips "In Place".
 2. Replace the `Model/Mannequin` instance and point `AnimationTree.root_node` at the new model.
 3. Put the new clips in an AnimationLibrary under the same names (`idle`, `walk`, `run`, `sprint`, `aim_idle`, `aim_forward`, `aim_backward`, `aim_left`, `aim_right`, `fall`), or rename the nodes in the tree.
 4. Measure each clip's real ground speed and move its blend-space point to that speed.
+5. M2.1 also adds the combat clips (combo, heavy, guard, dodge, hit reactions, get-up; unarmed and bat). Download them "In Place" too; lunges are moved in code by `MeleeCombat`.
 
 ## Code style
 
