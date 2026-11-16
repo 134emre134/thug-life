@@ -24,7 +24,7 @@
 
 1. **Your rise, your way** — multiple valid routes up the hierarchy (force, business, manipulation, loyalty/betrayal).
 2. **The world reacts** — police and NPCs remember what the player did and respond to it.
-3. **Weighty close-range action** — over-the-shoulder combat should feel physical: melee and firearms, cover, impact.
+3. **Weighty close-range action** — over-the-shoulder combat should feel physical. Fists and melee weapons are the primary way to solve problems and come first; firearms are an escalation added later.
 
 ## 4. Scope Strategy [Proposal]
 
@@ -36,7 +36,7 @@ Over-the-shoulder 3D is the expensive option; scope is controlled through world 
 
 ## 5. Core Loop [Open]
 
-_What does a typical 10-minute session look like?_ — **must be defined before M3 (Combat).**
+_What does a typical 10-minute session look like?_ — **must be defined before M3 (District & first crime).** The M2 melee prototype is built in a test arena and doesn't depend on it.
 
 ## 6. Progression & Criminal Hierarchy [Open]
 
@@ -44,11 +44,29 @@ _What does a typical 10-minute session look like?_ — **must be defined before 
 - How rank is gained: reputation, money, respect, kills, territory?
 - RPG elements: stats, skills, perks, gear?
 
-## 7. Combat [Open]
+## 7. Combat
 
-- Melee vs. firearms balance
-- Cover system yes/no
-- Lethal vs. non-lethal options, consequences
+### Direction [Decided]
+- **Melee first.** Fists and melee weapons are the fundamental problem-solving verb in this non-dialogue-heavy game. They get built and tuned before firearms (see §12: M2 melee, M4 firearms).
+
+### Melee model [Proposal]
+- **Readable, committal, physical** — closer to Sleeping Dogs than to a button-mashing brawler: every attack has a windup, active and recovery phase; hits land with hit stop, camera shake and a visible reaction.
+- **Soft targeting, no hard lock-on:** attacks snap/lunge toward the best target in a cone in front of the camera (magnetism). The camera stays free.
+- **Move set (player):** light attack combo (up to 3 hits) · heavy attack (hold) that breaks guard · guard (hold) · dodge/sidestep · weapon pickup and drop
+- **Guard stance replaces aim mode while unarmed or holding a melee weapon:** same strafing/facing behaviour as M1.4 (reuses the strafe blend space), but blocks instead of aiming
+- **No stamina** in the first version; guard is limited by guard break (heavy attacks) instead
+- **Hit reactions** by severity: flinch (light) → stagger (heavy / combo finisher) → knockdown → knockout (ragdoll)
+- **Group fights:** attack tokens: only 1–2 enemies attack at the same time, the others circle and wait. Required for readability over the shoulder.
+
+### Weapons [Proposal]
+- First set: **fists** + **one blunt weapon** (bat/pipe). Bladed weapons later, together with the lethality decision.
+- Weapons are items (`WeaponData` extends `ItemData`), picked up via the M1.5 interaction, dropped on knockout.
+
+### Still open [Open]
+- **Lethal vs. non-lethal:** M2 ends every fight in a knockout. Whether and how the player can kill (and what that does to heat, reputation and witnesses) is decided at the Core Loop gate, together with the crime system.
+- **Cover system:** only relevant for firearms; decide before M4.
+- Melee vs. firearms balance (M4).
+- Stealth takedowns, finishers, environmental attacks (later; must not be designed out).
 
 ## 8. Police & Crime [Proposal]
 
@@ -89,7 +107,7 @@ No omniscient wanted level. Every crime passes through a chain the player can in
 - `HeatManager` — heat level, search area, decay
 - Crime definitions as `.tres` data (severity, base heat, witness radius)
 
-**First vertical slice:** pickpocketing + heat level 1 (fits M2).
+**First vertical slice:** pickpocketing + heat level 1 (M3).
 
 ## 9. World & Setting
 
@@ -113,16 +131,17 @@ Early game focuses on the player's individual character, not faction influence. 
 
 ## 12. Milestones [Decided: order]
 
-Rationale: build the gameplay skeleton (movement, aiming, interaction) first, then validate the unique pillar (police/witness system) before investing in generic, expensive combat.
+Rationale: build the gameplay skeleton (movement, aiming, interaction) first, then the core verb: fists and melee weapons are how problems get solved in this game, so their feel has to hit the mark before anything is built on top of them. The police/witness system follows and gets real crimes to react to (assault, not only pickpocketing). Firearms are an escalation on top of a working melee system.
 
 | # | Milestone | Content |
 |---|-----------|---------|
 | M0 | Setup | Godot, VS Code, GitHub, folder structure ✅ |
 | M1 | Character skeleton | Locomotion, camera, aim mode, interaction, basic physics, placeholder animation — in a gray-box test level 🔧 (implemented; Mixamo model + playtest tuning pending) |
-| M2 | District & first crime | Block-out district, walking NPCs, pickpocketing → witness → report → heat level 1 |
-| — | _Gate_ | _Define Core Loop (§5) before M3_ |
-| M3 | Combat prototype | One melee + one firearm, hit reactions, ragdolls, basic enemy AI |
-| M4 | First progression loop | One job type → money/reputation → first rank-up |
+| M2 | Melee combat | Fists + one blunt weapon, guard/dodge, hit reactions, knockout ragdolls, one melee enemy type with group behaviour — in a combat arena |
+| — | _Gate_ | _Define Core Loop (§5) and lethality (§7) before M3_ |
+| M3 | District & first crime | Block-out district, walking NPCs, pickpocketing → witness → report → heat level 1 |
+| M4 | Firearms | One firearm, cover decision (§7), ranged enemy behaviour, firearm use → heat |
+| M5 | First progression loop | One job type → money/reputation → first rank-up |
 
 ### M1 — Character skeleton [Proposal: details]
 
@@ -145,22 +164,45 @@ Tasks are listed in implementation order. Each one is done when it works in the 
 
 **Out of scope for M1:** firing weapons, melee, ragdolls, hit reactions, crouch/cover (cover is still open, see §7), vehicles.
 
-### M2 — District & first crime [Proposal: details]
+### M2 — Melee combat [Proposal: details]
+
+Goal: one-on-one and one-against-three fights with fists and a bat feel weighty and readable. Tasks are listed in implementation order.
+
+| Task | Content | Done when |
+|---|---|---|
+| M2.1 Character & combat animations | Finish the M1.7 follow-up: Mixamo character replaces the mannequin. Add in-place clips for light combo (3), heavy, guard, dodge, hit reactions (flinch/stagger/knockdown), get-up; unarmed and bat variants. `AnimationTree` gets a combat layer (one-shot/state machine on top of locomotion) | All combat clips play from a debug key on the new model; locomotion still meets the M1.7 criterion |
+| M2.2 Health & damage | Reusable `HealthComponent` (health, knocked-out state, signals); `HitboxComponent` / `HurtboxComponent` (Area3D, new physics layers); `AttackData` resource (damage, reaction severity, knockback impulse, windup/active/recovery times, lunge distance, clip name) in `data/attacks/` | A test dummy takes damage and shows reactions; all attack values are tunable in `.tres` files |
+| M2.3 Combat component | `MeleeCombat` component driven by intent (light, heavy, guard, dodge), like `PlayerMovement`: attack phases, combo window, input buffering, cancel rules (dodge cancels recovery), lunge toward the soft target | Full combo, heavy, guard and dodge chain without dropped inputs |
+| M2.4 Soft targeting | Best target in a cone around the camera direction (distance + angle score); attack rotates/lunges toward it; no target = attack in camera direction | Attacks reliably connect with the intended enemy out of three, without a lock-on button |
+| M2.5 Hit feel | Hit stop (per `AttackData`), camera shake, hit reactions by severity, knockout → ragdoll (physical bones), placeholder hit sounds | A heavy hit is clearly distinguishable from a light one, both by sound alone and with sound off |
+| M2.6 Melee weapon | `WeaponData` extends `ItemData`; bat pickup via `Interactable`; own `AttackData` set; dropped on knockout | Picking up the bat changes reach, timing and damage with no special-case code in the player |
+| M2.7 Enemy AI | One thug type: `NavigationAgent3D`; approach → circle → attack with clear telegraph → occasional guard; drives the **same** `PlayerMovement` and `MeleeCombat` components through an NPC controller; `CombatDirector` hands out attack tokens (max 1–2 attackers) | A 1 vs. 3 fight is readable: never more than 2 attack at once, every attack can be seen coming |
+| M2.8 Combat arena | `combat_gym.tscn`: open area, narrow alley, props to knock around, enemy spawner, debug overlay (health, attack phase, current target) | Scene loads; fights can be restarted without reloading |
+
+**Applies to the whole milestone:**
+- Same rules as M1: tuning values in `@export`s or resources, inputs via InputMap, separate components
+- New inputs: `attack_light`, `attack_heavy` (may share a button with hold detection), `guard`, `dodge`. Proposed default: LMB attack (hold = heavy), RMB guard (replaces aim while unarmed/melee), dodge = jump key while guarding. Final bindings are decided in playtest
+- Combat emits signals (`hit_landed(attacker, victim, attack)`, `knocked_out(victim, by)`) so the M3 `CrimeManager` can turn them into assault crime events without changing combat code
+- Player, enemies and later civilians/police share the same health, hurtbox and combat components
+
+**Out of scope for M2:** firearms, killing/lethal outcomes (§7 open), crime/heat integration (M3), stealth takedowns, finishers, stamina, skills/perks, bladed weapons, more than one enemy type.
+
+### M3 — District & first crime [Proposal: details]
 
 | Task | Content |
 |---|---|
-| M2.1 District block-out | Small part of Brickhaven in gray-box: a few streets, a square, alleys, enough line-of-sight breakers |
-| M2.2 NPC walkers | `NavigationAgent3D` civilians following simple routines (walk between points, idle) |
-| M2.3 Crime events | `CrimeManager` + crime definitions as `.tres`; pickpocketing as an interaction (built on M1.5) |
-| M2.4 Witnesses | `WitnessComponent`: field of view + line of sight; reactions: flee / call police; the report timer can be interrupted |
-| M2.5 Heat level 1 | `HeatManager`: heat level, last known position, search radius that shrinks over time |
-| M2.6 Police response | One patrol unit walks to the last known position and searches the area; minimal arrest = cash lost + respawn |
+| M3.1 District block-out | Small part of Brickhaven in gray-box: a few streets, a square, alleys, enough line-of-sight breakers |
+| M3.2 NPC walkers | `NavigationAgent3D` civilians following simple routines (walk between points, idle); builds on the M2.7 NPC controller |
+| M3.3 Crime events | `CrimeManager` + crime definitions as `.tres`; pickpocketing as an interaction (built on M1.5) |
+| M3.4 Witnesses | `WitnessComponent`: field of view + line of sight; reactions: flee / call police; the report timer can be interrupted |
+| M3.5 Heat level 1 | `HeatManager`: heat level, last known position, search radius that shrinks over time |
+| M3.6 Police response | One patrol unit walks to the last known position and searches the area; minimal arrest = cash lost + respawn |
 
 **Done when:** the full chain plays out in the district: pickpocket → seen or unseen → report or prevented → patrol searches → escape or get arrested.
 
 ## 13. Technical Risks (3D, over-the-shoulder)
 
 - Camera collision and aiming feel
-- Character animation volume (locomotion, combat, NPCs)
+- Character animation volume (locomotion, combat, NPCs); melee feel depends heavily on clip quality, and Mixamo's melee/bat selection is limited
 - NPC crowds and AI performance (incl. witness perception checks)
 - World streaming / LOD once the map grows beyond one district
