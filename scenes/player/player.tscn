@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://scripts/components/ragdoll_component.gd" id="33_ragdoll"]
 [ext_resource type="Script" path="res://scripts/components/model_flash.gd" id="34_model_flash"]
 [ext_resource type="Script" path="res://scripts/components/combat_audio.gd" id="35_combat_audio"]
+[ext_resource type="Script" path="res://scripts/components/inventory_component.gd" id="36_inventory"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -107,6 +108,14 @@ targeting = NodePath("../Targeting")
 weapon_socket = NodePath("../Model/Mannequin/Hips/Torso/ArmR/HandR")
 team = &"player"
 unarmed = ExtResource("32_fists")
+
+[node name="Inventory" type="Node" parent="." node_paths=PackedStringArray("combat", "health", "body", "model", "drop_origin")]
+script = ExtResource("36_inventory")
+combat = NodePath("../Combat")
+health = NodePath("../Health")
+body = NodePath("..")
+model = NodePath("../Model")
+drop_origin = NodePath("../Model/Mannequin/Hips/Torso/ArmR/HandR")
 
 [node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
 script = ExtResource("33_ragdoll")

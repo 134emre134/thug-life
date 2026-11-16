@@ -1,9 +1,10 @@
 class_name WeaponPickup
 extends RigidBody3D
 ## A weapon lying in the world: a physical prop that hands its [WeaponData] to
-## whoever uses it, through a duck-typed [code]equip_weapon(weapon)[/code]
-## method on the interactor. The scene doesn't reference its weapon itself
-## (see [WeaponData]); the level or the dropping character assigns it.
+## whoever uses it, through a duck-typed [code]receive_item(item) -> bool[/code]
+## method on the interactor (the player puts it in its inventory). The scene
+## doesn't reference its weapon itself (see [WeaponData]); the level or the
+## dropping inventory assigns it.
 
 @export var weapon: WeaponData
 
@@ -18,11 +19,13 @@ func _ready() -> void:
 
 
 func _on_interacted(interactor: Node3D) -> void:
-	if weapon == null or not interactor.has_method(&"equip_weapon"):
+	if weapon == null or not interactor.has_method(&"receive_item"):
 		return
 	var taken := weapon
 	weapon = null
+	if not interactor.call(&"receive_item", taken):
+		weapon = taken
+		return
 	_interactable.enabled = false
 	queue_free()
-	interactor.call(&"equip_weapon", taken)
 	Events.notify("Picked up: %s" % taken.display_name)

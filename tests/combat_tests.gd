@@ -68,7 +68,7 @@ func test_arena_setup() -> void:
 	var region := arena.get_node(^"NavigationRegion3D") as NavigationRegion3D
 	_check(region.navigation_mesh.get_polygon_count() > 0, "navigation mesh baked")
 	_check(_enemies().size() == 3, "3 thugs spawned")
-	_check(_pickups().size() == 2, "2 bats in the arena")
+	_check(_pickups().size() == 3, "2 bats and a knife in the arena")
 	_check(get_tree().get_first_node_in_group(&"combat_director") != null, "director present")
 	_check(player.health.health == 150.0, "player at full health")
 	_check(Engine.time_scale == 1.0, "time scale normal")
@@ -348,7 +348,7 @@ func test_bat() -> void:
 	await _load_arena(MODE_DUMMY)
 	var dummy := _enemies()[0]
 	_place(dummy, player.global_position + Vector3(0, 0, -6))
-	var bat := _pickups()[0]
+	var bat := _pickups().filter(func(p: Node) -> bool: return p.weapon == BAT)[0] as RigidBody3D
 	bat.global_transform = Transform3D(
 		Basis(Vector3.RIGHT, PI / 2), player.global_position + Vector3(0, 0.1, -0.9)
 	)
@@ -390,7 +390,7 @@ func test_knockdown_and_get_up() -> void:
 	await _load_arena(MODE_DUMMY)
 	var dummy := _enemies()[0]
 	_place(dummy, player.global_position + Vector3(0, 0, -1.8))
-	player.equip_weapon(BAT)
+	player.receive_item(BAT)
 	await _frames(2)
 	var states: Array[int] = []
 	dummy.combat.state_changed.connect(func(s: int) -> void: states.append(s))
@@ -412,7 +412,7 @@ func test_knockout_drop_and_ragdoll() -> void:
 	await _load_arena(MODE_DUMMY)
 	var dummy := _enemies()[0]
 	_place(dummy, player.global_position + Vector3(0, 0, -1.6))
-	dummy.combat.equip(BAT)
+	dummy.inventory.add_item(BAT)
 	await _frames(2)
 	var ko: Array = []
 	dummy.health.knocked_out.connect(func(v: Node3D, by: Node3D) -> void: ko.append([v, by]))
@@ -538,7 +538,7 @@ func test_player_knockout_and_restart() -> void:
 		if not t.combat.is_knocked_out():
 			alive += 1
 	_check(alive == 3, "all fresh thugs standing")
-	_check(_pickups().size() == 2, "weapons reset")
+	_check(_pickups().size() == 3, "weapons reset")
 	arena.set(&"mode", MODE_ONE_VS_ONE)
 	_press_event(&"next_fight_mode")
 	await _frames(3)

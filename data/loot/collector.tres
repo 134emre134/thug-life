@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/loot_table.gd" id="1_loot_table"]
+[ext_resource type="Script" path="res://scripts/data/loot_entry.gd" id="2_loot_entry"]
+[ext_resource type="Resource" path="res://data/items/collection_ledger.tres" id="3_collection_ledger"]
+[ext_resource type="Resource" path="res://data/items/wristwatch.tres" id="4_wristwatch"]
+[ext_resource type="Resource" path="res://data/items/phone.tres" id="5_phone"]
+
+[sub_resource type="Resource" id="Resource_collection_ledger"]
+script = ExtResource("2_loot_entry")
+item = ExtResource("3_collection_ledger")
+chance = 1.0
+
+[sub_resource type="Resource" id="Resource_wristwatch"]
+script = ExtResource("2_loot_entry")
+item = ExtResource("4_wristwatch")
+chance = 0.7
+
+[sub_resource type="Resource" id="Resource_phone"]
+script = ExtResource("2_loot_entry")
+item = ExtResource("5_phone")
+chance = 0.5
+
+[resource]
+script = ExtResource("1_loot_table")
+cash_min = 80
+cash_max = 160
+entries = Array[ExtResource("2_loot_entry")]([SubResource("Resource_collection_ledger"), SubResource("Resource_wristwatch"), SubResource("Resource_phone")])

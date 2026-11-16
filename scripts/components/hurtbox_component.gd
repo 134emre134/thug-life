@@ -7,8 +7,10 @@ extends Area3D
 ## which resolves guard, dodge and reactions. Without a receiver the damage goes
 ## straight to [member health] (e.g. a breakable prop).
 
-## Outcome of a hit, as reported back to the attacker.
-enum HitResult { IGNORED, DODGED, BLOCKED, GUARD_BROKEN, HIT, KNOCKED_OUT }
+## Outcome of a hit, as reported back to the attacker. Everything from
+## [code]GUARD_BROKEN[/code] up counts as a landed hit.
+## [code]DOWNED_HIT[/code]: hit on a knocked-out body (downed damage).
+enum HitResult { IGNORED, DODGED, BLOCKED, GUARD_BROKEN, HIT, KNOCKED_OUT, DOWNED_HIT, KILLED }
 
 const LAYER := 1 << 6  # physics layer 7 "hurtbox"
 
@@ -26,6 +28,14 @@ const LAYER := 1 << 6  # physics layer 7 "hurtbox"
 		enabled = value
 		set_deferred(&"monitorable", value)
 
+## While set, the hurtbox stays over this node horizontally (e.g. the root
+## body of a knockout ragdoll), so a body on the ground can still be hit.
+var follow: Node3D = null:
+	set(value):
+		follow = value
+		if follow == null:
+			position = Vector3.ZERO
+
 
 func _ready() -> void:
 	if body == null:
@@ -36,8 +46,18 @@ func _ready() -> void:
 	monitorable = enabled
 
 
+func _physics_process(_delta: float) -> void:
+	if follow == null:
+		return
+	if not is_instance_valid(follow):
+		follow = null
+		return
+	var point := follow.global_position
+	global_position = Vector3(point.x, body.global_position.y, point.z)
+
+
 func can_be_hit() -> bool:
-	return enabled and (health == null or not health.is_knocked_out())
+	return enabled and (health == null or health.can_take_damage())
 
 
 ## Point used for line-of-sight checks (centre of the shape).
@@ -55,5 +75,10 @@ func receive_hit(attacker: Node3D, attack: AttackData, direction: Vector3) -> Hi
 		return receiver.call(&"receive_hit", attacker, attack, direction)
 	if health == null:
 		return HitResult.IGNORED
+	var was_down := health.is_down()
 	health.take_damage(attack.damage, attacker, attack)
+	if health.is_dead():
+		return HitResult.KILLED
+	if was_down:
+		return HitResult.DOWNED_HIT
 	return HitResult.KNOCKED_OUT if health.is_knocked_out() else HitResult.HIT

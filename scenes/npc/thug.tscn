@@ -19,6 +19,10 @@
 [ext_resource type="Script" path="res://scripts/components/combat_audio.gd" id="21_combat_audio"]
 [ext_resource type="Script" path="res://scripts/npc/thug_ai.gd" id="22_thug_ai"]
 [ext_resource type="Script" path="res://scripts/ui/combat_debug_label.gd" id="23_debug_label"]
+[ext_resource type="Script" path="res://scripts/components/inventory_component.gd" id="24_inventory"]
+[ext_resource type="Resource" path="res://data/loot/thug.tres" id="25_thug_loot"]
+[ext_resource type="Script" path="res://scripts/components/body_search.gd" id="26_body_search"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="27_interactable"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -27,6 +31,9 @@ height = 1.8
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hurtbox"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_search"]
+radius = 0.9
 
 [node name="Thug" type="CharacterBody3D"]
 collision_layer = 16
@@ -66,6 +73,7 @@ sprint_speed = 6.0
 script = ExtResource("14_health")
 max_health = 100.0
 body = NodePath("..")
+knockout_recovery_time = 12.0
 
 [node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health", "body")]
 script = ExtResource("15_hurtbox")
@@ -88,6 +96,31 @@ team = &"thugs"
 unarmed = ExtResource("18_thug_fists")
 track_target_in_windup = false
 dodge_clip = &"dodge"
+
+[node name="Inventory" type="Node" parent="." node_paths=PackedStringArray("combat", "health", "body", "model", "drop_origin")]
+script = ExtResource("24_inventory")
+combat = NodePath("../Combat")
+health = NodePath("../Health")
+body = NodePath("..")
+model = NodePath("../Model")
+drop_origin = NodePath("../Model/Mannequin/Hips/Torso/ArmR/HandR")
+loot_table = ExtResource("25_thug_loot")
+
+[node name="Search" type="Node3D" parent="." node_paths=PackedStringArray("health", "inventory", "ragdoll", "body")]
+script = ExtResource("26_body_search")
+health = NodePath("../Health")
+inventory = NodePath("../Inventory")
+ragdoll = NodePath("../Ragdoll")
+body = NodePath("..")
+
+[node name="Interactable" type="Area3D" parent="Search"]
+script = ExtResource("27_interactable")
+prompt_text = "Search"
+enabled = false
+hold_time = 1.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Search/Interactable"]
+shape = SubResource("SphereShape3D_search")
 
 [node name="AI" type="Node" parent="." node_paths=PackedStringArray("body", "combat", "agent")]
 script = ExtResource("22_thug_ai")

@@ -1,5 +1,8 @@
 extends Node3D
 ## World pickup for an [ItemData]. Spins/bobs, disappears when collected.
+## The item goes to the interactor through a duck-typed
+## [code]receive_item(item) -> bool[/code] (the player's inventory); if that
+## refuses it (pockets full), the pickup stays.
 
 signal picked_up(item: ItemData, by: Node3D)
 
@@ -27,6 +30,12 @@ func _process(delta: float) -> void:
 
 
 func _on_interacted(interactor: Node3D) -> void:
+	if item != null and interactor.has_method(&"receive_item"):
+		if not interactor.call(&"receive_item", item):
+			Events.notify("Pockets full")
+			# The interactable is one-shot: keep it usable.
+			_interactable.set_deferred(&"enabled", true)
+			return
 	picked_up.emit(item, interactor)
 	var item_name := item.display_name if item else "item"
 	Events.notify("Picked up: %s" % item_name)

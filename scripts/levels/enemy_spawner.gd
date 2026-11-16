@@ -1,10 +1,14 @@
 class_name EnemySpawner
 extends Node3D
 ## Spawns NPCs at its Marker3D children (in order) and keeps track of them.
+## NPC i uses [member enemy_scenes] entry i (cycled), so a fight can mix NPC
+## types; without entries every NPC is [member enemy_scene].
 
 signal spawned(npc: Node3D)
 
 @export var enemy_scene: PackedScene
+## Scene per spawn, in order (cycled). Empty = always [member enemy_scene].
+@export var enemy_scenes: Array[PackedScene] = []
 ## Node the NPCs are added to. Defaults to this spawner.
 @export var container: Node
 
@@ -19,12 +23,15 @@ func spawn(count: int, configure: Callable = Callable()) -> Array[Node3D]:
 		if child is Marker3D:
 			markers.append(child)
 	var result: Array[Node3D] = []
-	if enemy_scene == null or markers.is_empty():
+	if (enemy_scene == null and enemy_scenes.is_empty()) or markers.is_empty():
 		push_warning("EnemySpawner: no enemy scene or no Marker3D spawn points.")
 		return result
 	var parent := container if container != null else self
 	for i in count:
-		var npc := enemy_scene.instantiate() as Node3D
+		var scene := enemy_scenes[i % enemy_scenes.size()] if not enemy_scenes.is_empty() else null
+		if scene == null:
+			scene = enemy_scene
+		var npc := scene.instantiate() as Node3D
 		if configure.is_valid():
 			configure.call(npc)
 		parent.add_child(npc)
@@ -56,6 +63,6 @@ func get_alive() -> Array[Node3D]:
 		if not is_instance_valid(npc):
 			continue
 		var combat := npc.get_node_or_null(^"Combat") as MeleeCombat
-		if combat == null or not combat.is_knocked_out():
+		if combat == null or not combat.is_down():
 			alive.append(npc)
 	return alive

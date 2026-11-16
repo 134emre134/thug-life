@@ -99,6 +99,13 @@ func deactivate() -> void:
 	is_active = false
 
 
+## Pushes the ragdoll (N·s), spread over its bodies by mass (hits on a body
+## on the ground).
+func apply_impulse(impulse: Vector3) -> void:
+	for body in _bodies:
+		body.apply_central_impulse(impulse * body.mass / total_mass)
+
+
 ## Root body of the ragdoll (null when inactive).
 func get_root_body() -> RigidBody3D:
 	return _bodies[0] if not _bodies.is_empty() else null

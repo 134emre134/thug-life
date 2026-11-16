@@ -75,7 +75,11 @@ func _on_hit_taken(
 		_:
 			if attack.hit_sound != null:
 				_play(attack.hit_sound, 0.0)
-			elif attack.is_heavy() or result == HurtboxComponent.HitResult.KNOCKED_OUT:
+			elif (
+				attack.is_heavy()
+				or result == HurtboxComponent.HitResult.KNOCKED_OUT
+				or result == HurtboxComponent.HitResult.KILLED
+			):
 				_play(_heavy, heavy_volume_db)
 			else:
 				_play(_light, light_volume_db)

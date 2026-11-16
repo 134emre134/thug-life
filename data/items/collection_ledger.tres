@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="1_item_data"]
+
+[resource]
+script = ExtResource("1_item_data")
+id = &"collection_ledger"
+display_name = "Collection ledger"
+description = "Names, amounts and late fees. The interest rate is creative."
+value = 25

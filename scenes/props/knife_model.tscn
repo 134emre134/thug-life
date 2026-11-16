@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/mannequin_joint.tres" id="1_grip"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/knife_blade.tres" id="2_blade"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_handle"]
+size = Vector3(0.03, 0.12, 0.022)
+material = ExtResource("1_grip")
+
+[sub_resource type="BoxMesh" id="BoxMesh_guard"]
+size = Vector3(0.05, 0.012, 0.03)
+material = ExtResource("1_grip")
+
+[sub_resource type="PrismMesh" id="PrismMesh_blade"]
+left_to_right = 0.0
+size = Vector3(0.032, 0.17, 0.006)
+material = ExtResource("2_blade")
+
+[node name="KnifeModel" type="Node3D"]
+
+[node name="Handle" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_handle")
+
+[node name="Guard" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.066, 0)
+mesh = SubResource("BoxMesh_guard")
+
+[node name="Blade" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, -1, 0, -0.157, 0)
+mesh = SubResource("PrismMesh_blade")

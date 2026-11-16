@@ -3,8 +3,15 @@ extends CharacterBody3D
 ## Thin NPC body, the counterpart of [Player]: its controller ([ThugAI])
 ## decides, and the shared components act, in the same order as for the
 ## player: combat -> movement -> animation.
+##
+## Knocked out, it lies as a ragdoll that can still be hit (downed damage: the
+## hurtbox follows the ragdoll) and searched ([BodySearch]); untouched, it
+## gets back up after the [HealthComponent]'s recovery time. Dead, it stays a
+## ragdoll that can only be searched.
 
 signal knocked_out(npc: NpcCharacter)
+signal killed(npc: NpcCharacter)
+signal recovered(npc: NpcCharacter)
 
 ## Materials on the model that get replaced by [member tint_material] (e.g.
 ## the mannequin body material), so enemies read differently from the player.
@@ -22,6 +29,8 @@ var _collision_layer: int = 0
 @onready var ragdoll: RagdollComponent = $Ragdoll
 @onready var flash: ModelFlash = $Flash
 @onready var ai: ThugAI = $AI
+@onready var inventory: InventoryComponent = $Inventory
+@onready var search: BodySearch = $Search
 
 
 func _ready() -> void:
@@ -33,7 +42,9 @@ func _ready() -> void:
 	combat.phase_changed.connect(_on_phase_changed)
 	combat.state_changed.connect(_on_state_changed)
 	combat.hit_taken.connect(_on_hit_taken)
-	health.knocked_out.connect(_on_knocked_out)
+	health.knocked_out.connect(_on_down)
+	health.killed.connect(_on_down)
+	health.recovered.connect(_on_recovered)
 
 
 func _physics_process(delta: float) -> void:
@@ -44,9 +55,18 @@ func _physics_process(delta: float) -> void:
 	animator.update(delta, ai.move_intent.strafe or combat.is_guarding(), combat.get_guard_clip())
 
 
-## Physical push (N·s), duck-typed like the player's.
+## Physical push (N·s), duck-typed like the player's. A downed NPC's ragdoll
+## takes it instead.
 func apply_knockback(impulse: Vector3) -> void:
-	movement.apply_knockback(impulse)
+	if ragdoll.is_active:
+		ragdoll.apply_impulse(impulse)
+	else:
+		movement.apply_knockback(impulse)
+
+
+## Duck-typed access for body searches and (M3b) pickpocketing.
+func get_inventory() -> InventoryComponent:
+	return inventory
 
 
 func get_facing() -> Vector3:
@@ -69,13 +89,33 @@ func _on_hit_taken(
 		flash.flash_hit(attack.is_heavy())
 
 
-func _on_knocked_out(_victim: Node3D, _by: Node3D) -> void:
-	ai.on_knocked_out()
-	flash.clear()
-	collision_layer = 0
-	hurtbox.enabled = false
-	ragdoll.activate(combat.last_hit_impulse * 1.5, velocity)
-	knocked_out.emit(self)
+## Knocked out or killed (a knockout can be followed by death).
+func _on_down(_victim: Node3D, _by: Node3D) -> void:
+	if not ragdoll.is_active:
+		ai.on_knocked_out()
+		flash.clear()
+		collision_layer = 0
+		ragdoll.activate(combat.last_hit_impulse * 1.5, velocity)
+		hurtbox.follow = ragdoll.get_root_body()
+	if health.is_dead():
+		hurtbox.enabled = false
+		killed.emit(self)
+	else:
+		knocked_out.emit(self)
+
+
+## Gets up where the ragdoll lies.
+func _on_recovered(_victim: Node3D) -> void:
+	var root := ragdoll.get_root_body()
+	if root != null:
+		global_position = Vector3(root.global_position.x, global_position.y, root.global_position.z)
+	ragdoll.deactivate()
+	hurtbox.follow = null
+	hurtbox.enabled = true
+	collision_layer = _collision_layer
+	velocity = Vector3.ZERO
+	reset_physics_interpolation()
+	recovered.emit(self)
 
 
 func _apply_tint(node: Node) -> void:
