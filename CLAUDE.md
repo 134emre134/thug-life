@@ -19,12 +19,15 @@ Never treat an [Open] item as decided. If a task needs one, ask instead of inven
 | # | Milestone | Status |
 |---|---|---|
 | M0 | Setup and folder structure | done |
-| M1 | Character skeleton (GDD §12, M1.1–M1.7) | implemented, needs playtest and tuning in the editor |
-| M2 | Melee combat (GDD §7, §12 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | next |
-| — | **Gate:** define the Core Loop (GDD §5) and lethality (GDD §7) before M3 | |
-| M3 | District and first crime (pickpocket → witness → report → heat 1) | |
+| M1 | Character skeleton (GDD §19, M1.1–M1.7) | implemented, needs playtest and tuning in the editor |
+| M2 | Melee combat (GDD §7, §19 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | in progress |
+| M3a | Inventory, loot and lethality (GDD §7, §12, §13, §19 M3a): slot inventory, wallet, looting, death, knife, HUD | |
+| — | **Gate:** define the Core Loop (GDD §5) before M3b | |
+| M3b | District and first crime (pickpocket → witness → report → heat 1, minimap) | |
 | M4 | Firearms | |
-| M5 | First progression loop | |
+| M5 | First progression loop (shop robbery, shops, interiors, `WorldClock`) | |
+| M6 | Nightlife (day/night cycle, fight club) | |
+| M7–M9 | Customization, second district + cars, vehicle roster (GDD §17, §18) | |
 
 Each milestone is built on its own branch and merged by PR. A task is done when its GDD "Done when" criterion works in the test level.
 
@@ -32,7 +35,7 @@ Each milestone is built on its own branch and merged by PR. A task is done when 
 
 - Main scene: `res://scenes/levels/test_gym.tscn` (gray-box gym, M1.1).
 - Controls (all bound in the InputMap, `project.godot` `[input]`): WASD move · Shift sprint · Ctrl walk · Space jump · RMB aim · Q swap shoulder · E interact · F3 debug overlay · Esc release mouse.
-- From M2 on, RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4). Keep `PlayerAim` intact, it is needed again in M4. Proposed M2 bindings are in GDD §12 M2.
+- From M2 on, RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4). Keep `PlayerAim` intact, it is needed again in M4. Proposed M2 bindings are in GDD §19 M2.
 - Headless checks (CI or a cloud container):
   ```bash
   godot --headless --import            # (re)generate .godot/ cache and .uid files
@@ -72,8 +75,9 @@ Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `I
 7. **Signals up, calls down.** A parent calls methods on its children. Children report back through signals. `Events` (autoload, `scripts/autoload/events.gd`) is reserved for cross-cutting fire-and-forget events (UI notifications, later crime events).
 8. Planned system names from the GDD:
    - **M2 (melee):** `HealthComponent`, `HitboxComponent`, `HurtboxComponent`, `MeleeCombat`, `CombatDirector` (attack tokens); resources `AttackData` (`data/attacks/*.tres`) and `WeaponData` (extends `ItemData`).
-   - **M3 (crime):** `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
-9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals (`hit_landed`, `knocked_out`). The M3 `CrimeManager` listens and turns them into crime events; no crime or heat code goes into combat components.
+   - **M3a (inventory/loot):** `InventoryComponent`, `LootTable` (`data/loot/*.tres`); `HealthComponent` gains a `dead` state, `AttackData` a `damage_type`.
+   - **M3b (crime):** `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
+9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals (`hit_landed`, `knocked_out`, later `killed`). The M3b `CrimeManager` listens and turns them into crime events; no crime or heat code goes into combat components.
 
 ### Physics layers (`project.godot` `[layer_names]`)
 
