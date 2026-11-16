@@ -352,9 +352,11 @@ func is_busy_reacting() -> bool:
 	return state == State.REACTION or state == State.KNOCKDOWN
 
 
-## Guard pose clip while guarding, empty otherwise.
-func get_guard_clip() -> StringName:
-	return get_weapon().guard_clip if state == State.GUARD else &""
+## Upper-body pose for the animator: the guard pose while guarding, else the
+## weapon's ready pose (empty for fists). Attacks and reactions play on the
+## full-body combat layer on top.
+func get_upper_body_clip() -> StringName:
+	return get_weapon().guard_clip if state == State.GUARD else get_weapon().ready_clip
 
 
 func is_invulnerable() -> bool:

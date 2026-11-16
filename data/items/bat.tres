@@ -14,6 +14,7 @@ script = ExtResource("1_weapon_data")
 light_combo = Array[ExtResource("2_attack_data")]([ExtResource("3_bat_1"), ExtResource("4_bat_2"), ExtResource("5_bat_3")])
 heavy_attack = ExtResource("6_bat_heavy")
 guard_clip = &"bat_guard"
+ready_clip = &"bat_ready"
 held_scene = ExtResource("7_bat_model")
 pickup_scene = ExtResource("8_bat_pickup")
 id = &"bat"

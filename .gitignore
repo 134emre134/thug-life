@@ -1,3 +1,7 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Textures extracted from FBX models on import (regenerated from the .fbx)
+assets/models/*_[0-9].png
+assets/models/*_[0-9].png.import

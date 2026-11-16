@@ -123,7 +123,7 @@ func _physics_process(delta: float) -> void:
 	interaction.update(get_aim_origin(), look)
 
 	# Animation
-	animator.update(delta, aim.is_aiming or combat.is_guarding(), combat.get_guard_clip())
+	animator.update(delta, aim.is_aiming or combat.is_guarding(), combat.get_upper_body_clip())
 
 
 ## Push the player with a physical impulse (N·s). Used by explosions, hits,

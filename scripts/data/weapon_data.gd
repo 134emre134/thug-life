@@ -11,6 +11,9 @@ extends ItemData
 @export var heavy_attack: AttackData
 ## Upper-body pose while guarding (an input of the AnimationTree's guard_clip node).
 @export var guard_clip: StringName = &"guard"
+## Upper-body pose while holding the weapon outside attacks (e.g. bat over the
+## shoulder). Empty = the locomotion clips move the arms freely.
+@export var ready_clip: StringName = &""
 ## Visual attached to the hand socket while held (origin = grip, extends along -Y).
 @export var held_scene: PackedScene
 ## World pickup spawned when dropped. Empty = cannot be dropped (fists).
