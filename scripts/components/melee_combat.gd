@@ -12,7 +12,7 @@ extends Node
 ## to its animator.
 ##
 ## Combat knows nothing about crime: it reports [signal hit_landed] here and
-## knockouts on the [HealthComponent]; the M3 CrimeManager listens to those.
+## knockouts on the [HealthComponent]; the M3b CrimeManager listens to those.
 
 signal state_changed(state: State)
 signal phase_changed(phase: Phase)
@@ -260,7 +260,7 @@ func receive_hit(
 	last_hit_impulse = impulse
 	var damage := hit_attack.damage * (guard_break_damage_scale if guarded else 1.0)
 	if health != null:
-		health.take_damage(damage, attacker)
+		health.take_damage(damage, attacker, hit_attack)
 		if health.is_knocked_out():
 			hit_taken.emit(attacker, hit_attack, HurtboxComponent.HitResult.KNOCKED_OUT)
 			return HurtboxComponent.HitResult.KNOCKED_OUT

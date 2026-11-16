@@ -55,5 +55,5 @@ func receive_hit(attacker: Node3D, attack: AttackData, direction: Vector3) -> Hi
 		return receiver.call(&"receive_hit", attacker, attack, direction)
 	if health == null:
 		return HitResult.IGNORED
-	health.take_damage(attack.damage, attacker)
+	health.take_damage(attack.damage, attacker, attack)
 	return HitResult.KNOCKED_OUT if health.is_knocked_out() else HitResult.HIT

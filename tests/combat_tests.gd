@@ -72,6 +72,11 @@ func test_arena_setup() -> void:
 	_check(get_tree().get_first_node_in_group(&"combat_director") != null, "director present")
 	_check(player.health.health == 150.0, "player at full health")
 	_check(Engine.time_scale == 1.0, "time scale normal")
+	for weapon: WeaponData in [FISTS, BAT, preload("res://data/items/thug_fists.tres")]:
+		var attacks: Array[AttackData] = weapon.light_combo.duplicate()
+		attacks.append(weapon.heavy_attack)
+		for attack in attacks:
+			_check(attack.damage_type == AttackData.DamageType.BLUNT, "%s is blunt" % attack.id)
 
 
 func test_clips_play() -> void:
@@ -419,6 +424,7 @@ func test_knockout_drop_and_ragdoll() -> void:
 	if ko.size() == 1:
 		_check(ko[0][0] == dummy and ko[0][1] == player, "knocked_out(victim, by)")
 	_check(dummy.combat.is_knocked_out(), "dummy knocked out")
+	_check(dummy.health.state == HealthComponent.State.KNOCKED_OUT, "health state is KNOCKED_OUT")
 	_check(dummy.ragdoll.is_active, "ragdoll active")
 	_check(not dummy.model.visible, "model hidden")
 	var bodies := dummy.ragdoll.get_child(0).get_children().filter(

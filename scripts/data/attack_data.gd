@@ -8,6 +8,9 @@ extends Resource
 
 ## How hard the victim reacts to a hit that is not blocked.
 enum Reaction { NONE, FLINCH, STAGGER, KNOCKDOWN }
+## What the damage does once health runs out (GDD §7 Lethality). M2 only
+## knocks out; M3a gives blade and firearm damage their lethal behaviour.
+enum DamageType { BLUNT, BLADE, FIREARM }
 
 @export var id: StringName
 
@@ -27,6 +30,7 @@ enum Reaction { NONE, FLINCH, STAGGER, KNOCKDOWN }
 
 @export_group("Damage")
 @export var damage: float = 10.0
+@export var damage_type: DamageType = DamageType.BLUNT
 @export var reaction: Reaction = Reaction.FLINCH
 ## Breaks a guard instead of being blocked by it.
 @export var breaks_guard: bool = false
