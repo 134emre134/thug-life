@@ -30,3 +30,19 @@ static func _add_boxes(node: Node, source: NavigationMeshSourceGeometryData3D, m
 			mesh.size = box.size
 			source.add_mesh_array(mesh.get_mesh_arrays(), box.global_transform)
 		_add_boxes(child, source, mask)
+
+
+## The navigation map syncs asynchronously: waits (up to [param max_frames]
+## physics frames) until [param region] owns the map around [param probe], so
+## NPCs get paths from their first tick. Returns false on timeout.
+static func wait_for_region(region: NavigationRegion3D, probe: Vector3, max_frames: int) -> bool:
+	var tree := region.get_tree()
+	var map := region.get_navigation_map()
+	for i in max_frames:
+		await tree.physics_frame
+		if NavigationServer3D.map_get_iteration_id(map) == 0:
+			continue
+		if NavigationServer3D.map_get_closest_point_owner(map, probe) == region.get_rid():
+			return true
+	push_warning("NavigationBaker: navigation map not ready; NPCs steer directly until it is.")
+	return false
