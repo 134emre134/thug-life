@@ -349,7 +349,7 @@ What was built, and where it deviates from the table above. All numbers are star
 - **Lethality (M3a.3):** `HealthComponent` states `ACTIVE` → `KNOCKED_OUT` → `DEAD`. Blunt damage at 0 HP knocks out; blade (and later firearm) damage at 0 HP kills straight away. A knocked-out body has 40 points of **downed health**; downed damage is scaled by type (blunt ×1, blade ×2, firearm ×4), so fists need about 5 hits and the bat 3. An untouched knocked-out thug gets up after **12 s** with 30% health (every downed hit restarts the timer) and fights again. `killed(victim, by)` on `HealthComponent`; downed hits are still reported as `hit_landed`.
   - **Knife:** `WeaponData` with blade attacks: 2-hit combo 30/30, heavy 45 (breaks guard, staggers), reach 0.85 m. Four light stabs kill a thug. One knife lies in the arena.
   - **Deviation — no ground attacks.** Hits on a downed body use the normal standing attacks: the knocked-out body's hurtbox follows the ragdoll, so swinging at a body on the floor hits it. Stomps come with the M4a combat update (M4a.5). The knife reuses the punch clips for now.
-  - **Deviation — after recovery the thug fights again** instead of fleeing or reporting (§7 Lethality, §8). Fleeing comes with the M3b civilian panic reaction; reporting needs the M5a witness and crime systems.
+  - **Deviation — after recovery the thug fights again** instead of fleeing or reporting (§7 Lethality, §8). Civilians flee after recovery since M3b; reporting needs the M5a witness and crime systems.
   - **Player:** a knocked-out player stays down (no recovery timer) and a blade can kill the player ("You died"); both end the fight until F5. Hospital respawn with a cash cost (§7) is not built yet (it needs a world to respawn in). Thugs never attack a downed player, and the player's downed body can't be hit.
 - **Looting (M3a.4):** `BodySearch` on every NPC exposes a "Search" `Interactable` on knocked-out and dead bodies (it follows the ragdoll). Searching is a **1.5 s hold** of E; the player stands still meanwhile, and releasing E, attacking or taking a hit cancels it. Cash and every item that fits move to the player; what doesn't fit (pockets full) stays and the body can be searched again. Emits `looted(victim, by)`. A searched body can't be searched again; a recovering thug resets it. Weapons still drop physically on knockout or death (and are not part of the search).
 - **HUD (M3a.5):** cash (flashes green/red on change), health bar, held weapon ("Fists (Knife holstered)"), hold progress under the interaction prompt ("[E] Search (hold)"), and an inventory overlay (Tab) listing cash, melee (in hand / holstered), firearm (locked) and all pocket slots. The overlay is read-only.
@@ -371,6 +371,45 @@ Goal: leave the gray-box levels. All further work happens in a small street envi
 | M3b.6 Basic minimap | District map with the player position and orientation; no police data | The minimap matches the district layout while moving |
 
 **Done when:** spawn in the district, walk the streets among civilians, start a fight in the gym or an alley, civilians nearby scatter, and knocked-out civilians and thugs can be looted.
+
+#### M3b implementation notes [Proposal: awaiting playtest]
+
+What was built, and where it deviates from the table above. All numbers are starting values in `.tscn`/`.tres`/`@export`s, to be tuned in playtest.
+
+- **District (M3b.1):** `scenes/levels/district.tscn` is now the main scene. Brickhaven is about 128 × 104 m: **Harbour Road** (east–west) and **Dock Street** (north–south) cross in the middle and split it into four blocks:
+  - north-west: **Brix Square** (fountain, benches, kiosk, planters, a low wall);
+  - north-east: the **boxing club yard** (district gym);
+  - south-west: housing, **St. Brix Clinic** and a back alley;
+  - south-east: shops-to-be and the harbour.
+
+  The **Old Quay** promenade runs along the south edge, behind a 1.3 m railing. Every block has a back alley. Parked cars, a van, a bus shelter, dumpsters, bollards and a crane block line of sight, and there are low objects (0.45–0.9 m) for M4a crouch/M4b cover. Houses are closed boxes; tall boundary buildings close off the district. Roads, sidewalks and the plaza are flat markings without collision (no curbs to snag on). Light satire: a "BRIX · The Creative Quarter · lofts from 1.2M" sign on the new-build lofts.
+  - **Reserved lots** (yellow ground marking + "RESERVED" sign): general store (on Harbour Road), melee shop (Dock Street/Harbour Road corner), gun dealer (in the south-east back alley), warehouse/fight club (by the quay).
+  - **Deviation — generated layout.** The block-out was written by a one-off generator script (not committed) as plain `CSGBox3D` nodes, so it is edited in the Godot editor like any hand-made scene.
+- **District gym (M3b.2):** a **fenced yard** (3 m fence, gates west and south) rather than a building, so fights stay visible from the street and civilians react to them. It is a `FightArena` (the M2.8 arena logic, now shared with `combat_gym.tscn`): a **Start fight** button by the south gate starts the current mode without moving the player; F5 restarts (player back at the yard spawn, weapons and enemies reset) and F6 switches mode, **only while the player is inside the yard**. Unlike the arena, a restart doesn't take the held weapon away. `combat_gym.tscn` stays as a debug scene.
+- **Thug spawns (M3b.3):** street thugs (`street_thug.tscn`) loiter in the back alleys, 1–2 per alley, 7 in total.
+  - **Added — aggro range.** In the arena a thug hunts the player anywhere; in the streets that would pull every thug in the district to the player. A street thug only picks up the player within **9 m and in sight**, drops the target beyond **22 m**, and then walks back to where it spawned. Hitting a thug always provokes it.
+  - Gym thugs keep the arena behaviour. All thugs share one `CombatDirector`, so token limits apply across the district.
+- **NPC populations:** spawners keep a set number of NPCs standing. A lost NPC is replaced after **20 s** at a spawn point at least **25 m** from the player. Dead bodies stay **45 s** and are then removed once the player is 25 m away. Knocked-out NPCs count as standing (they get back up).
+- **Civilian walkers (M3b.4):** 10 civilians (`civilian.tscn`: 60 HP, walk 1.5 m/s, sprint 5.6 m/s, so the player can catch them) walk six `WalkRoute`s along the sidewalks, the square and the quay, and idle at some route points (35% chance, 2–6 s).
+  - They use the same health, hurtbox, combat, ragdoll, inventory and search components as thugs, on their own team (`civilians`), and never fight back.
+  - **Loot** (`data/loot/civilian.tres`): $10–60 (90%), phone 60%, wristwatch 15%, and a worthless "BRIX loyalty card" 40% (satire).
+  - **Deviation — NPC types are still scene variants.** `civilian.tscn` inherits `thug.tscn` and swaps the AI script; the M3a note expected a possible `NpcTypeData` resource here. Variants are still enough, since a type is only loot, stats, team, tint and controller. Revisit when NPC types grow (M5a witnesses, M6 fighters).
+- **Civilian panic (M3b.5):** a civilian panics on seeing, within **14 m** and with line of sight:
+  - someone attacking or being hit;
+  - a knocked-out or dead body (each body scares a civilian only once, so bodies don't create permanent no-go zones).
+
+  Being hit also causes panic, and so does a panicking civilian within **6 m** (contagion). Panicking civilians sprint away along the navigation mesh until they are **22 m** from the danger (at least 4 s, at most 14 s), catch their breath for 3 s and walk back to their route. A knocked-out civilian who gets back up flees. No reporting (M5a).
+- **Basic minimap (M3b.6):** top-right on the HUD; it draws footprints of buildings, obstacles, roads, sidewalks, the plaza, water, reserved lots and the gym yard, with the player arrow in the centre. It **turns with the camera** (an N marker shows north); there is an export for north-up. No NPCs or police data. It is hidden in levels without map data (the arena).
+- **Added — clinic respawn (§7).** A downed or dead player wakes up at St. Brix Clinic after **4 s**, fully healed, and pays **$50** (or whatever cash they have). There is no time skip yet (needs `WorldClock`, M5b). This replaces "fight over until F5" from M3a, which doesn't work in an open district.
+- **Tests:** `tests/m3b_tests.tscn` checks the M3b "Done when" criteria headless in the real district:
+  - layout: navigation mesh, lots marked, populations filled;
+  - the player walks real-input routes to 13 places across the district without snagging;
+  - gym: the button starts the fight, F5/F6 only work inside the yard, a restart gives fresh enemies without a reload;
+  - street thugs: aggro range, attacking, giving up and walking home;
+  - civilians: walking their routes, being knocked out and looted, scattering from a fight (while distant civilians stay calm), fleeing from a body and after recovering;
+  - minimap scale and rotation, clinic respawn and fee, population respawn.
+
+  The M2 and M3a suites still pass.
 
 ### M4a — Combat update [Proposal: details]
 

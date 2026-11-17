@@ -1,0 +1,1109 @@
+[gd_scene format=3]
+
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_floor.tres" id="1_floor"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/district_road.tres" id="2_road"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/district_sidewalk.tres" id="3_sidewalk"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/district_plaza.tres" id="4_plaza"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/district_brick.tres" id="5_brick"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/district_concrete.tres" id="6_concrete"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/district_new_build.tres" id="7_new_build"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_wall.tres" id="8_wall"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_cover.tres" id="9_cover"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_accent.tres" id="10_accent"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/district_lot.tres" id="11_lot"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/district_water.tres" id="12_water"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/hazard.tres" id="13_hazard"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="14_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="15_hud"]
+[ext_resource type="PackedScene" path="res://scenes/npc/thug.tscn" id="16_thug"]
+[ext_resource type="PackedScene" path="res://scenes/npc/collector.tscn" id="17_collector"]
+[ext_resource type="PackedScene" path="res://scenes/npc/street_thug.tscn" id="18_street_thug"]
+[ext_resource type="PackedScene" path="res://scenes/npc/civilian.tscn" id="19_civilian"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="20_crate"]
+[ext_resource type="PackedScene" path="res://scenes/props/barrel.tscn" id="21_barrel"]
+[ext_resource type="PackedScene" path="res://scenes/props/heavy_crate.tscn" id="22_heavy_crate"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/push_button.tscn" id="23_push_button"]
+[ext_resource type="Resource" path="res://data/items/bat.tres" id="24_bat"]
+[ext_resource type="Resource" path="res://data/items/knife.tres" id="25_knife"]
+[ext_resource type="Script" path="res://scripts/levels/district.gd" id="26_district"]
+[ext_resource type="Script" path="res://scripts/levels/fight_arena.gd" id="27_fight_arena"]
+[ext_resource type="Script" path="res://scripts/levels/enemy_spawner.gd" id="28_enemy_spawner"]
+[ext_resource type="Script" path="res://scripts/npc/combat_director.gd" id="29_combat_director"]
+[ext_resource type="Script" path="res://scripts/npc/walk_route.gd" id="30_walk_route"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.38, 0.52, 0.72, 1)
+sky_horizon_color = Color(0.7, 0.72, 0.76, 1)
+ground_bottom_color = Color(0.2, 0.2, 0.22, 1)
+ground_horizon_color = Color(0.7, 0.72, 0.76, 1)
+
+[sub_resource type="Sky" id="Sky_sky"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_sky")
+ambient_light_source = 3
+reflected_light_source = 2
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_district"]
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 1
+cell_size = 0.25
+cell_height = 0.25
+agent_height = 1.75
+agent_radius = 0.5
+agent_max_climb = 0.25
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_gym"]
+size = Vector3(23.4, 4, 21.4)
+
+[node name="District" type="Node3D" node_paths=PackedStringArray("gym")]
+script = ExtResource("26_district")
+gym = NodePath("Gym")
+minimap_layers = Dictionary[StringName, NodePath]({
+&"water": NodePath("Surface/Water"),
+&"plaza": NodePath("Surface/Plazas"),
+&"sidewalk": NodePath("Surface/Sidewalks"),
+&"road": NodePath("Surface/Roads"),
+&"lot": NodePath("Lots"),
+&"obstacle": NodePath("NavigationRegion3D/Geometry/Obstacles"),
+&"building": NodePath("NavigationRegion3D/Geometry/Buildings"),
+&"gym": NodePath("Gym/InputArea")
+})
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.81915, 0.46985, -0.32899, 0, 0.57358, 0.81915, 0.57358, -0.67101, 0.46985, 0, 30, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 90
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_district")
+
+[node name="Geometry" type="Node3D" parent="NavigationRegion3D"]
+
+[node name="Ground" type="Node3D" parent="NavigationRegion3D/Geometry"]
+
+[node name="Buildings" type="Node3D" parent="NavigationRegion3D/Geometry"]
+
+[node name="Obstacles" type="Node3D" parent="NavigationRegion3D/Geometry"]
+
+[node name="Floor" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -1.75)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(128, 1, 104.5)
+material = ExtResource("1_floor")
+
+[node name="NW_Terrace1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 6, -46)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 12, 16)
+material = ExtResource("5_brick")
+
+[node name="NW_Terrace2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.5, 4.5, -46)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(19, 9, 16)
+material = ExtResource("5_brick")
+
+[node name="NW_Lofts" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 7, -46)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(16, 14, 16)
+material = ExtResource("7_new_build")
+
+[node name="NW_Warehouse" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 5, -22)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 10, 28)
+material = ExtResource("5_brick")
+
+[node name="NE_Offices" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 5.5, -47)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(16, 11, 14)
+material = ExtResource("6_concrete")
+
+[node name="NE_Depot" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 4, -47)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(20, 8, 14)
+material = ExtResource("6_concrete")
+
+[node name="NE_Tower" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 55, 8, -47)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 16, 14)
+material = ExtResource("7_new_build")
+
+[node name="NE_Garage" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 4.5, -23)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(12, 9, 22)
+material = ExtResource("6_concrete")
+
+[node name="NE_Flats" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57, 5, -23)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(14, 10, 30)
+material = ExtResource("5_brick")
+
+[node name="SW_Clinic" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 4, 15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 8, 14)
+material = ExtResource("6_concrete")
+
+[node name="SW_Block1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 6, 19)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 12, 22)
+material = ExtResource("5_brick")
+
+[node name="SW_Block2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55, 4.5, 36)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 9, 8)
+material = ExtResource("5_brick")
+
+[node name="SW_Row1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 5, 33)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(18, 10, 14)
+material = ExtResource("5_brick")
+
+[node name="SW_Row2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 3.5, 33)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(14, 7, 14)
+material = ExtResource("5_brick")
+
+[node name="SE_Shops" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 4.5, 14)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(12, 9, 12)
+material = ExtResource("5_brick")
+
+[node name="SE_Hotel" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51, 6, 14)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(26, 12, 12)
+material = ExtResource("7_new_build")
+
+[node name="SE_Rowhouse" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 4, 32)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(12, 8, 16)
+material = ExtResource("5_brick")
+
+[node name="BoundaryW" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 6, -2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 12, 104)
+material = ExtResource("5_brick")
+
+[node name="BoundaryE" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65, 6, -2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 12, 104)
+material = ExtResource("5_brick")
+
+[node name="BoundaryN" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, -55)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(132, 12, 2)
+material = ExtResource("5_brick")
+
+[node name="YardFenceN" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 1.5, -36.15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(24, 3, 0.3)
+material = ExtResource("10_accent")
+
+[node name="YardFenceE" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.85, 1.5, -25)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.3, 3, 22)
+material = ExtResource("10_accent")
+
+[node name="YardFenceW1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.5, -32)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.3, 3, 8)
+material = ExtResource("10_accent")
+
+[node name="YardFenceW2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.5, -18)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.3, 3, 8)
+material = ExtResource("10_accent")
+
+[node name="YardFenceS1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.5, 1.5, -14.15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(9, 3, 0.3)
+material = ExtResource("10_accent")
+
+[node name="YardFenceS2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Buildings"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.5, 1.5, -14.15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(9, 3, 0.3)
+material = ExtResource("10_accent")
+
+[node name="QuayRailing" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 49.85)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(128, 1.3, 0.3)
+material = ExtResource("8_wall")
+
+[node name="FountainBasin" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0.3, -22)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4, 0.6, 4)
+material = ExtResource("8_wall")
+
+[node name="FountainStatue" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 1.6, -22)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 3.2, 1)
+material = ExtResource("10_accent")
+
+[node name="Bench1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0.225, -17)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 0.45, 0.6)
+material = ExtResource("9_cover")
+
+[node name="Bench2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0.225, -27)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 0.45, 0.6)
+material = ExtResource("9_cover")
+
+[node name="Bench3" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 0.225, -22)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 0.45, 2)
+material = ExtResource("9_cover")
+
+[node name="Kiosk" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 1.5, -14)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(3, 3, 3)
+material = ExtResource("10_accent")
+
+[node name="Planter1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 0.3, -30)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.2, 0.6, 1.2)
+material = ExtResource("9_cover")
+
+[node name="Planter2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0.3, -14)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.2, 0.6, 1.2)
+material = ExtResource("9_cover")
+
+[node name="Planter3" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0.3, -30)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.2, 0.6, 1.2)
+material = ExtResource("9_cover")
+
+[node name="SquareLowWall" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.3, 0.45, -23)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.4, 0.9, 18)
+material = ExtResource("9_cover")
+
+[node name="Car1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0.7, 3)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4.2, 1.4, 1.8)
+material = ExtResource("6_concrete")
+
+[node name="Car2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.7, 3)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4.2, 1.4, 1.8)
+material = ExtResource("6_concrete")
+
+[node name="Car3" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.7, 3)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4.2, 1.4, 1.8)
+material = ExtResource("6_concrete")
+
+[node name="Car4" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43, 0.7, 3)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4.2, 1.4, 1.8)
+material = ExtResource("6_concrete")
+
+[node name="Car5" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.7, -30)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.4, 4.2)
+material = ExtResource("6_concrete")
+
+[node name="Car6" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.7, 25)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.4, 4.2)
+material = ExtResource("6_concrete")
+
+[node name="Van1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.9, 1.2, 16.75)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 2.4, 5.5)
+material = ExtResource("7_new_build")
+
+[node name="BusShelterBack" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52, 1.2, -5.95)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4, 2.4, 0.3)
+material = ExtResource("10_accent")
+
+[node name="BusShelterSide" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.9, 1.2, -5.35)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.2, 2.4, 1.5)
+material = ExtResource("10_accent")
+
+[node name="DumpsterNE1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.9, 0.65, -39.2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.3, 1.2)
+material = ExtResource("13_hazard")
+
+[node name="DumpsterNE2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.9, 0.65, -39.2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.3, 1.2)
+material = ExtResource("13_hazard")
+
+[node name="DumpsterSW1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.1, 0.65, 22.8)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.3, 1.2)
+material = ExtResource("13_hazard")
+
+[node name="DumpsterSW2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.1, 0.65, 25.2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.3, 1.2)
+material = ExtResource("13_hazard")
+
+[node name="DumpsterSE1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.9, 0.65, 20.8)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.8, 1.3, 1.2)
+material = ExtResource("13_hazard")
+
+[node name="AlleyLowWallSE" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47, 0.45, 22.2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(6, 0.9, 0.4)
+material = ExtResource("9_cover")
+
+[node name="NWAlleyCrates" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 0.5, -47.4)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1.2, 1, 1.2)
+material = ExtResource("9_cover")
+
+[node name="YardLowCover" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0.45, -30)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2.4, 0.9, 0.6)
+material = ExtResource("9_cover")
+
+[node name="YardLowCover2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0.45, -21)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 0.9, 2.4)
+material = ExtResource("9_cover")
+
+[node name="YardPillar" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 1.5, -28)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.8, 3, 0.8)
+material = ExtResource("10_accent")
+
+[node name="Bollard1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0.35, 48.9)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 0.7, 0.6)
+material = ExtResource("10_accent")
+
+[node name="Bollard2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.35, 48.9)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 0.7, 0.6)
+material = ExtResource("10_accent")
+
+[node name="Bollard3" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0.35, 48.9)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 0.7, 0.6)
+material = ExtResource("10_accent")
+
+[node name="PromenadeBench1" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0.225, 44)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 0.45, 0.6)
+material = ExtResource("9_cover")
+
+[node name="PromenadeBench2" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0.225, 44)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2, 0.45, 0.6)
+material = ExtResource("9_cover")
+
+[node name="Crane" type="CSGBox3D" parent="NavigationRegion3D/Geometry/Obstacles"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54, 3, 45)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(4, 6, 4)
+material = ExtResource("13_hazard")
+
+[node name="Surface" type="Node3D" parent="."]
+
+[node name="Roads" type="Node3D" parent="Surface"]
+
+[node name="Sidewalks" type="Node3D" parent="Surface"]
+
+[node name="Plazas" type="Node3D" parent="Surface"]
+
+[node name="HarbourRoad" type="CSGBox3D" parent="Surface/Roads"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+size = Vector3(128, 0.04, 8)
+material = ExtResource("2_road")
+
+[node name="DockStreet" type="CSGBox3D" parent="Surface/Roads"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, -2)
+size = Vector3(8, 0.04, 104)
+material = ExtResource("2_road")
+
+[node name="SidewalkHarbourN_W" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 0, -5)
+size = Vector3(58, 0.04, 2)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkHarbourN_E" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, -5)
+size = Vector3(58, 0.04, 2)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkHarbourS_W" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 0, 5)
+size = Vector3(58, 0.04, 2)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkHarbourS_E" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, 5)
+size = Vector3(58, 0.04, 2)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkDockW_N" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -30)
+size = Vector3(2, 0.04, 48)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkDockE_N" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -30)
+size = Vector3(2, 0.04, 48)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkDockW_S" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 28)
+size = Vector3(2, 0.04, 44)
+material = ExtResource("3_sidewalk")
+
+[node name="SidewalkDockE_S" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 28)
+size = Vector3(2, 0.04, 44)
+material = ExtResource("3_sidewalk")
+
+[node name="Promenade" type="CSGBox3D" parent="Surface/Sidewalks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 45.85)
+size = Vector3(128, 0.04, 7.7)
+material = ExtResource("3_sidewalk")
+
+[node name="BrixSquare" type="CSGBox3D" parent="Surface/Plazas"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -22)
+size = Vector3(32, 0.04, 28)
+material = ExtResource("4_plaza")
+
+[node name="Water" type="CSGBox3D" parent="Surface"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.6, 70)
+size = Vector3(160, 0.2, 40)
+material = ExtResource("12_water")
+
+[node name="Lots" type="Node3D" parent="."]
+
+[node name="LotGeneralStore" type="CSGBox3D" parent="Lots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0.01, 14)
+size = Vector3(14, 0.04, 12)
+material = ExtResource("11_lot")
+
+[node name="Label" type="Label3D" parent="Lots/LotGeneralStore"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+billboard = 1
+pixel_size = 0.01
+font_size = 56
+outline_size = 12
+text = "RESERVED\nGeneral store (M5b)"
+
+[node name="LotMeleeShop" type="CSGBox3D" parent="Lots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.01, 13)
+size = Vector3(12, 0.04, 10)
+material = ExtResource("11_lot")
+
+[node name="Label" type="Label3D" parent="Lots/LotMeleeShop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+billboard = 1
+pixel_size = 0.01
+font_size = 56
+outline_size = 12
+text = "RESERVED\nMelee shop (M5b)"
+
+[node name="LotGunDealer" type="CSGBox3D" parent="Lots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0.01, 30)
+size = Vector3(10, 0.04, 8)
+material = ExtResource("11_lot")
+
+[node name="Label" type="Label3D" parent="Lots/LotGunDealer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+billboard = 1
+pixel_size = 0.01
+font_size = 56
+outline_size = 12
+text = "RESERVED\nGun dealer (M5b)"
+
+[node name="LotWarehouse" type="CSGBox3D" parent="Lots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 49, 0.01, 32.5)
+size = Vector3(22, 0.04, 17)
+material = ExtResource("11_lot")
+
+[node name="Label" type="Label3D" parent="Lots/LotWarehouse"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+billboard = 1
+pixel_size = 0.01
+font_size = 56
+outline_size = 12
+text = "RESERVED\nWarehouse / fight club (M6)"
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="SignSquare" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 5.5, -22)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "BRIX SQUARE"
+
+[node name="SignGym" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 4.5, -13)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "BRICKHAVEN BOXING CLUB · yard"
+
+[node name="SignClinic" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 6.5, 7.6)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "ST. BRIX CLINIC"
+
+[node name="SignHarbourRoad" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 4, -6.5)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "Harbour Road"
+
+[node name="SignDockStreet" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 4, -12)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "Dock Street"
+
+[node name="SignBrix" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 9, -38.2)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "BRIX · The Creative Quarter · lofts from 1.2M"
+
+[node name="SignQuay" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 47)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "Old Quay"
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Prop1" parent="Props" instance=ExtResource("20_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 0.4, -37.5)
+
+[node name="Prop2" parent="Props" instance=ExtResource("20_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.8, 0.4, -37.3)
+
+[node name="Prop3" parent="Props" instance=ExtResource("21_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37, 0.5, 24.5)
+
+[node name="Prop4" parent="Props" instance=ExtResource("21_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0.5, 22.6)
+
+[node name="Prop5" parent="Props" instance=ExtResource("20_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.8, 0.4, -45.5)
+
+[node name="Prop6" parent="Props" instance=ExtResource("22_heavy_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47, 0.6, 21)
+
+[node name="Prop7" parent="Props" instance=ExtResource("21_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0.5, -16)
+
+[node name="Prop8" parent="Props" instance=ExtResource("20_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0.4, -34)
+
+[node name="Prop9" parent="Props" instance=ExtResource("20_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.8, 0.4, -34.2)
+
+[node name="Prop10" parent="Props" instance=ExtResource("21_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.5, 44)
+
+[node name="Prop11" parent="Props" instance=ExtResource("20_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0.4, 44.5)
+
+[node name="WalkRoutes" type="Node3D" parent="."]
+
+[node name="SquareLoop" type="Node3D" parent="WalkRoutes"]
+script = ExtResource("30_walk_route")
+loop = true
+
+[node name="P1" type="Marker3D" parent="WalkRoutes/SquareLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, -10)
+
+[node name="P2" type="Marker3D" parent="WalkRoutes/SquareLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -10)
+
+[node name="P3" type="Marker3D" parent="WalkRoutes/SquareLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -33)
+
+[node name="P4" type="Marker3D" parent="WalkRoutes/SquareLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, -33)
+
+[node name="HarbourNorth" type="Node3D" parent="WalkRoutes"]
+script = ExtResource("30_walk_route")
+loop = false
+
+[node name="P1" type="Marker3D" parent="WalkRoutes/HarbourNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56, 0, -5)
+
+[node name="P2" type="Marker3D" parent="WalkRoutes/HarbourNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -5)
+
+[node name="P3" type="Marker3D" parent="WalkRoutes/HarbourNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -5)
+
+[node name="P4" type="Marker3D" parent="WalkRoutes/HarbourNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -20)
+
+[node name="P5" type="Marker3D" parent="WalkRoutes/HarbourNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -45)
+
+[node name="HarbourSouth" type="Node3D" parent="WalkRoutes"]
+script = ExtResource("30_walk_route")
+loop = false
+
+[node name="P1" type="Marker3D" parent="WalkRoutes/HarbourSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56, 0, 5)
+
+[node name="P2" type="Marker3D" parent="WalkRoutes/HarbourSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 5)
+
+[node name="P3" type="Marker3D" parent="WalkRoutes/HarbourSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 5)
+
+[node name="P4" type="Marker3D" parent="WalkRoutes/HarbourSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 5)
+
+[node name="P5" type="Marker3D" parent="WalkRoutes/HarbourSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 5)
+
+[node name="P6" type="Marker3D" parent="WalkRoutes/HarbourSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56, 0, 5)
+
+[node name="DockEast" type="Node3D" parent="WalkRoutes"]
+script = ExtResource("30_walk_route")
+loop = false
+
+[node name="P1" type="Marker3D" parent="WalkRoutes/DockEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -46)
+
+[node name="P2" type="Marker3D" parent="WalkRoutes/DockEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -25)
+
+[node name="P3" type="Marker3D" parent="WalkRoutes/DockEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -8)
+
+[node name="P4" type="Marker3D" parent="WalkRoutes/DockEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, -10)
+
+[node name="P5" type="Marker3D" parent="WalkRoutes/DockEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, -10)
+
+[node name="P6" type="Marker3D" parent="WalkRoutes/DockEast"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, -8)
+
+[node name="Promenade" type="Node3D" parent="WalkRoutes"]
+script = ExtResource("30_walk_route")
+loop = false
+
+[node name="P1" type="Marker3D" parent="WalkRoutes/Promenade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56, 0, 46)
+
+[node name="P2" type="Marker3D" parent="WalkRoutes/Promenade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 46)
+
+[node name="P3" type="Marker3D" parent="WalkRoutes/Promenade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 45)
+
+[node name="P4" type="Marker3D" parent="WalkRoutes/Promenade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 46)
+
+[node name="P5" type="Marker3D" parent="WalkRoutes/Promenade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, 46)
+
+[node name="DockSouthLoop" type="Node3D" parent="WalkRoutes"]
+script = ExtResource("30_walk_route")
+loop = true
+
+[node name="P1" type="Marker3D" parent="WalkRoutes/DockSouthLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 8)
+
+[node name="P2" type="Marker3D" parent="WalkRoutes/DockSouthLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 41)
+
+[node name="P3" type="Marker3D" parent="WalkRoutes/DockSouthLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 41)
+
+[node name="P4" type="Marker3D" parent="WalkRoutes/DockSouthLoop"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 8)
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("29_combat_director")
+
+[node name="NPCs" type="Node3D" parent="."]
+
+[node name="NpcSpawners" type="Node3D" parent="."]
+
+[node name="ThugsNE" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("18_street_thug")
+container = NodePath("../../NPCs")
+population = 2
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/ThugsNE"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 12, 0, -38)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/ThugsNE"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 30, 0, -38)
+
+[node name="Spawn3" type="Marker3D" parent="NpcSpawners/ThugsNE"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 40, 0, -38)
+
+[node name="ThugsSW" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("18_street_thug")
+container = NodePath("../../NPCs")
+population = 2
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/ThugsSW"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -32, 0, 24)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/ThugsSW"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -20, 0, 24)
+
+[node name="Spawn3" type="Marker3D" parent="NpcSpawners/ThugsSW"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -12, 0, 24)
+
+[node name="ThugsSE" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("18_street_thug")
+container = NodePath("../../NPCs")
+population = 2
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/ThugsSE"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 30, 0, 22)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/ThugsSE"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 40, 0, 22)
+
+[node name="ThugsNW" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("18_street_thug")
+container = NodePath("../../NPCs")
+population = 1
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/ThugsNW"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.5, 0, -44)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/ThugsNW"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -44.5, 0, -40)
+
+[node name="CiviliansNorth" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("19_civilian")
+container = NodePath("../../NPCs")
+population = 5
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/CiviliansNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39, 0, -10)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/CiviliansNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -33)
+
+[node name="Spawn3" type="Marker3D" parent="NpcSpawners/CiviliansNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, -5)
+
+[node name="Spawn4" type="Marker3D" parent="NpcSpawners/CiviliansNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -30)
+
+[node name="Spawn5" type="Marker3D" parent="NpcSpawners/CiviliansNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -5)
+
+[node name="Spawn6" type="Marker3D" parent="NpcSpawners/CiviliansNorth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50, 0, -5)
+
+[node name="CiviliansSouth" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("19_civilian")
+container = NodePath("../../NPCs")
+population = 5
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 5)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0, 5)
+
+[node name="Spawn3" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -25)
+
+[node name="Spawn4" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, -10)
+
+[node name="Spawn5" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 0, 46)
+
+[node name="Spawn6" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 46)
+
+[node name="Spawn7" type="Marker3D" parent="NpcSpawners/CiviliansSouth"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 30)
+
+[node name="Gym" type="Node3D" parent="." node_paths=PackedStringArray("input_area")]
+script = ExtResource("27_fight_arena")
+bat_weapon = ExtResource("24_bat")
+knife_weapon = ExtResource("25_knife")
+restart_clears_weapon = false
+input_area = NodePath("InputArea")
+
+[node name="InputArea" type="Area3D" parent="Gym"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 2, -25)
+collision_layer = 0
+collision_mask = 6
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Gym/InputArea"]
+shape = SubResource("BoxShape3D_gym")
+
+[node name="EnemySpawner" type="Node3D" parent="Gym" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("16_thug")
+enemy_scenes = Array[PackedScene]([ExtResource("16_thug"), ExtResource("16_thug"), ExtResource("17_collector")])
+container = NodePath("../../NPCs")
+
+[node name="Spawn1" type="Marker3D" parent="Gym/EnemySpawner"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, -31)
+
+[node name="Spawn2" type="Marker3D" parent="Gym/EnemySpawner"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, -27)
+
+[node name="Spawn3" type="Marker3D" parent="Gym/EnemySpawner"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, -26)
+
+[node name="BatSpawns" type="Node3D" parent="Gym"]
+
+[node name="KnifeSpawns" type="Node3D" parent="Gym"]
+
+[node name="Bat1" type="Marker3D" parent="Gym/BatSpawns"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 30, 0.1, -20)
+
+[node name="Bat2" type="Marker3D" parent="Gym/BatSpawns"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 45, 0.1, -32)
+
+[node name="Knife1" type="Marker3D" parent="Gym/KnifeSpawns"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 42, 0.05, -17)
+
+[node name="PlayerSpawn" type="Marker3D" parent="Gym"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, -17)
+
+[node name="StartButton" parent="Gym" instance=ExtResource("23_push_button")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, -15.6)
+prompt = "Start fight"
+
+[node name="PlayerSpawn" type="Marker3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -24, 0, 0)
+
+[node name="ClinicSpawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35, 0, 7)
+
+[node name="Player" parent="." instance=ExtResource("14_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, 0)
+
+[node name="HUD" parent="." node_paths=PackedStringArray("player") instance=ExtResource("15_hud")]
+player = NodePath("../Player")

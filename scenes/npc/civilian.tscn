@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/npc/thug.tscn" id="1_thug"]
+[ext_resource type="Script" path="res://scripts/npc/civilian_ai.gd" id="2_civilian_ai"]
+[ext_resource type="Resource" path="res://data/loot/civilian.tres" id="3_civilian_loot"]
+
+[node name="Civilian" instance=ExtResource("1_thug")]
+tint_color = Color(0.75, 0.85, 0.7, 1)
+
+[node name="Movement" parent="."]
+walk_speed = 1.5
+sprint_speed = 5.6
+
+[node name="Health" parent="."]
+max_health = 60.0
+
+[node name="Combat" parent="."]
+team = &"civilians"
+
+[node name="Inventory" parent="."]
+loot_table = ExtResource("3_civilian_loot")
+
+[node name="AI" parent="."]
+script = ExtResource("2_civilian_ai")

@@ -310,7 +310,7 @@ func test_knockout_recovery() -> void:
 	_check(untouched.combat.state == MeleeCombat.State.IDLE, "got up (get-up clip) and idle")
 	untouched.ai.enabled = true
 	await _seconds(0.5)
-	_check(untouched.ai.target == player.combat, "back in the fight")
+	_check((untouched.ai as ThugAI).target == player.combat, "back in the fight")
 
 
 # --- M3a.4 Looting -----------------------------------------------------------
