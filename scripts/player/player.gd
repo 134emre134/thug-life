@@ -33,6 +33,11 @@ signal revived
 ## Holding the light attack button this long triggers a heavy attack instead.
 @export var heavy_hold_time: float = 0.28
 
+@export_group("Debug")
+## The debug clip key (F4) shows short clips (single-frame poses) at least
+## this long, slowed down.
+@export var debug_clip_min_time: float = 1.0
+
 @export_group("Crouch")
 ## True: the crouch key toggles. False: crouch while it is held.
 @export var crouch_toggle: bool = true
@@ -297,5 +302,7 @@ func _debug_play_next_clip() -> void:
 		return
 	_debug_clip_index = (_debug_clip_index + 1) % clips.size()
 	var clip := StringName(clips[_debug_clip_index])
-	animator.play_combat_clip(clip)
+	var length := animator.get_clip_end(clip)
+	var speed := minf(1.0, length / debug_clip_min_time) if debug_clip_min_time > 0.0 else 1.0
+	animator.play_combat_clip(clip, maxf(speed, 0.01))
 	Events.notify("Clip %d/%d: %s" % [_debug_clip_index + 1, clips.size(), clip])
