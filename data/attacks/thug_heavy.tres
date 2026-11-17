@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_attack_data")
 id = &"thug_heavy"
-clip = &"punch_heavy"
-clip_hit_time = 0.42
+clip = &"punch_uppercut"
+speed = 0.5
 windup = 0.75
 active = 0.12
 recovery = 0.6

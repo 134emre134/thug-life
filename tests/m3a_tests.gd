@@ -306,7 +306,11 @@ func test_knockout_recovery() -> void:
 	_check(not untouched.ragdoll.is_active and untouched.model.visible, "ragdoll replaced")
 	_check(untouched.collision_layer != 0 and untouched.hurtbox.follow == null, "body restored")
 	_check(not untouched.search.interactable.enabled, "no search on a standing thug")
-	await _seconds(1.2)
+	_check(
+		String(untouched.animator.combat_clip).begins_with("getup_from"),
+		"get-up clip plays (%s)" % untouched.animator.combat_clip
+	)
+	await _until(func() -> bool: return untouched.combat.state == MeleeCombat.State.IDLE, 4.0)
 	_check(untouched.combat.state == MeleeCombat.State.IDLE, "got up (get-up clip) and idle")
 	untouched.ai.enabled = true
 	await _seconds(0.5)
@@ -582,6 +586,14 @@ func _frames(count: int) -> void:
 
 func _seconds(seconds: float) -> void:
 	await _frames(ceili(seconds * 60.0))
+
+
+## Waits until [param condition] holds, at most [param timeout] seconds.
+func _until(condition: Callable, timeout: float) -> void:
+	for i in ceili(timeout * 60.0):
+		if condition.call():
+			return
+		await _frames(1)
 
 
 func _tap(action: StringName) -> void:

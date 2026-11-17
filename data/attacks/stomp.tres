@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="AttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="1_attack_data"]
+
+[resource]
+script = ExtResource("1_attack_data")
+id = &"stomp"
+clip = &"stomp"
+speed = 0.8
+windup = 0.6
+active = 0.12
+recovery = 0.45
+damage = 14
+downed_damage = 18
+reaction = 1
+breaks_guard = false
+knockback = 90
+knockback_lift = 0
+reach = 0.55
+hit_radius = 0.5
+hit_height = 0.3
+lunge_distance = 1.4
+step_distance = 0.2
+hit_stop = 0.09
+camera_shake = 0.35

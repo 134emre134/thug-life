@@ -3,12 +3,19 @@ extends CanvasLayer
 ## crosshair, line-of-fire blocked marker, interaction prompt with hold
 ## progress, notifications, an inventory overlay (toggle_inventory) and a
 ## debug readout (debug_toggle; also shows the floating combat labels on NPCs).
+##
+## The inventory overlay pauses the game while it is open (M4a.6, GDD §12:
+## decided as temporary, revisit with crime and pursuits in M5). The HUD keeps
+## processing while paused. Searching a body is a world action and stays
+## real-time (it doesn't open the overlay).
 
 @export var player: Player
 @export var notification_time: float = 2.0
 ## Colour the cash label flashes when cash comes in / goes out.
 @export var cash_gain_color: Color = Color(0.45, 1.0, 0.45)
 @export var cash_loss_color: Color = Color(1.0, 0.4, 0.35)
+## Pause the game while the inventory overlay is open (temporary, M4a.6).
+@export var inventory_pauses_game: bool = true
 
 var _notify_tween: Tween
 var _cash_tween: Tween
@@ -28,6 +35,7 @@ var _cash_tween: Tween
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_crosshair.visible = false
 	_blocked_marker.visible = false
 	_prompt.visible = false
@@ -56,7 +64,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		_debug.visible = not _debug.visible
 		CombatDebugLabel.shown = _debug.visible
 	elif event.is_action_pressed(&"toggle_inventory"):
-		_inventory_panel.visible = not _inventory_panel.visible
+		set_inventory_open(not _inventory_panel.visible)
+
+
+func _exit_tree() -> void:
+	if _inventory_panel != null and _inventory_panel.visible and inventory_pauses_game:
+		get_tree().paused = false
+
+
+## Shows or hides the inventory overlay; pauses the game while it is open.
+func set_inventory_open(open: bool) -> void:
+	_inventory_panel.visible = open
+	if inventory_pauses_game:
+		get_tree().paused = open
+
+
+func is_inventory_open() -> bool:
+	return _inventory_panel.visible
 
 
 func _process(_delta: float) -> void:

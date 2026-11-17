@@ -6,7 +6,7 @@
 script = ExtResource("1_attack_data")
 id = &"bat_1"
 clip = &"bat_1"
-clip_hit_time = 0.18
+speed = 0.7
 windup = 0.18
 active = 0.1
 recovery = 0.32

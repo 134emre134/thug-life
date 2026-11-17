@@ -17,6 +17,13 @@ signal recovered(npc: NpcCharacter)
 ## read differently from the player. White = no tint.
 @export var tint_color: Color = Color.WHITE
 
+@export_group("Getting up")
+## Where the hips sit along the character's forward axis at the start of the
+## get-up clips (metres; getup_from_back / getup_from_front). The body is
+## placed so the clip's hips start where the ragdoll's pelvis lies.
+@export var get_up_back_hips_offset: float = -0.38
+@export var get_up_front_hips_offset: float = 0.11
+
 var _collision_layer: int = 0
 
 @onready var model: Node3D = $Model
@@ -36,6 +43,7 @@ func _ready() -> void:
 	add_to_group(&"npcs")
 	_collision_layer = collision_layer
 	_apply_tint(model)
+	combat.clip_source = animator
 	combat.clip_requested.connect(animator.play_combat_clip)
 	combat.clip_stopped.connect(animator.stop_combat_clip)
 	combat.phase_changed.connect(_on_phase_changed)
@@ -105,11 +113,21 @@ func _on_down(_victim: Node3D, _by: Node3D) -> void:
 		knocked_out.emit(self)
 
 
-## Gets up where the ragdoll lies.
+## Gets up where the ragdoll lies, turned so the get-up clip (from the back
+## or the front, chosen by [MeleeCombat]) starts in the ragdoll's pose.
 func _on_recovered(_victim: Node3D) -> void:
 	var root := ragdoll.get_root_body()
 	if root != null:
-		global_position = Vector3(root.global_position.x, global_position.y, root.global_position.z)
+		var pelvis := Vector3(root.global_position.x, global_position.y, root.global_position.z)
+		var face_down := ragdoll.is_face_down()
+		var head := ragdoll.get_head_direction()
+		var facing := get_facing()
+		if head != Vector3.ZERO:
+			# On the back the head points backwards, face down it points forwards.
+			facing = head if face_down else -head
+			model.rotation = Vector3(0.0, atan2(-facing.x, -facing.z), 0.0)
+		var offset := get_up_front_hips_offset if face_down else get_up_back_hips_offset
+		global_position = pelvis - facing * offset
 	ragdoll.deactivate()
 	hurtbox.follow = null
 	hurtbox.enabled = true

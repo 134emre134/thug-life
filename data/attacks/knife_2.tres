@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_attack_data")
 id = &"knife_2"
-clip = &"punch_2"
-clip_hit_time = 0.12
+clip = &"knife_stab_straight"
+speed = 0.9
 windup = 0.12
 active = 0.08
 recovery = 0.3

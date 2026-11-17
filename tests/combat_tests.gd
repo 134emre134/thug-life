@@ -152,13 +152,18 @@ func test_light_combo() -> void:
 	dummy.combat.state_changed.connect(func(s: int) -> void: states.append(s))
 	var saw_hit_stop := false
 	var saw_shake := false
+	# Timing follows the clips (M4a.2): tap again once the attack is in recovery.
 	for i in 3:
+		var serial := player.combat.attack_serial
 		await _tap(&"attack_light")
-		for f in 14:
+		for f in 180:
 			await _frames(1)
 			saw_hit_stop = saw_hit_stop or Engine.time_scale < 1.0
 			saw_shake = saw_shake or player.camera_rig.get_trauma() > 0.0
-	await _seconds(1.0)
+			var started_this := player.combat.attack_serial > serial
+			if started_this and player.combat.phase == MeleeCombat.Phase.RECOVERY:
+				break
+	await _seconds(1.5)
 	_check(started == [&"punch_1", &"punch_2", &"punch_3"], "full combo started: %s" % [started])
 	_check(landed.size() == 3, "3 hits landed (%d)" % landed.size())
 	if landed.size() > 0:
@@ -404,7 +409,8 @@ func test_knockdown_and_get_up() -> void:
 	await _tap(&"attack_light")
 	await _seconds(0.6)
 	_check(dummy.health.health == health, "no hits while down")
-	await _seconds(2.5)
+	# The get-up clip decides how long it takes (M4a).
+	await _until(func() -> bool: return dummy.combat.state == MeleeCombat.State.IDLE, 5.0)
 	_check(dummy.combat.state == MeleeCombat.State.IDLE, "got up again")
 	_check(states.has(MeleeCombat.State.KNOCKDOWN), "knockdown state seen")
 
@@ -650,6 +656,14 @@ func _frames(count: int) -> void:
 
 func _seconds(seconds: float) -> void:
 	await _frames(ceili(seconds * 60.0))
+
+
+## Waits until [param condition] holds, at most [param timeout] seconds.
+func _until(condition: Callable, timeout: float) -> void:
+	for i in ceili(timeout * 60.0):
+		if condition.call():
+			return
+		await _frames(1)
 
 
 func _tap(action: StringName) -> void:

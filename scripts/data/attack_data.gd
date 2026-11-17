@@ -1,10 +1,17 @@
 class_name AttackData
 extends Resource
-## One melee attack (a single punch or swing). Instances live in
-## res://data/attacks/*.tres and are referenced by a [WeaponData].
+## One melee attack (a single punch, swing, stab or stomp). Instances live in
+## res://data/attacks/*.tres and are referenced by a [WeaponData] (stomps by
+## [member MeleeCombat.stomp_attack]).
 ##
 ## Timeline: windup -> active -> recovery. Hits only land during the active
 ## phase. The next attack of a combo can start during recovery.
+##
+## Timing comes from the clip (M4a.2): its "hit" and "hit_end" animation markers
+## are the contact window, and the clip ends at its "end" marker (or its end).
+## The clip plays at [member speed], so windup = hit / speed and so on; it never
+## plays faster than authored. The fallback times below are only used when the
+## clip has no markers (and a warning is printed).
 
 ## How hard the victim reacts to a hit that is not blocked.
 enum Reaction { NONE, FLINCH, STAGGER, KNOCKDOWN }
@@ -12,24 +19,31 @@ enum Reaction { NONE, FLINCH, STAGGER, KNOCKDOWN }
 ## knocks out; M3a gives blade and firearm damage their lethal behaviour.
 enum DamageType { BLUNT, BLADE, FIREARM }
 
+## Slowest and fastest allowed playback speed (never faster than the clip).
+const MIN_SPEED := 0.25
+const MAX_SPEED := 1.0
+
 @export var id: StringName
 
 @export_group("Animation")
 ## Clip name in the combat animation layer (an input of the AnimationTree's
-## combat_clip node, see [PlayerAnimator]).
+## combat_clip node, see [PlayerAnimator]). Its markers define the timing.
 @export var clip: StringName
-## Time in the clip (seconds, at authored speed) where the hit lands. The clip
-## is time-stretched so this moment lines up with the start of the active
-## phase, whatever the windup length. 0 = stretch the clip uniformly.
-@export var clip_hit_time: float = 0.0
+## Playback speed of the clip (1 = authored speed). Lower = slower, heavier
+## attack: every phase stretches with it.
+@export_range(0.25, 1.0, 0.01) var speed: float = 1.0
 
-@export_group("Timing (s)")
+@export_group("Fallback timing (s)")
+## Only used when [member clip] has no "hit" / "hit_end" markers.
 @export var windup: float = 0.15
 @export var active: float = 0.1
 @export var recovery: float = 0.3
 
 @export_group("Damage")
 @export var damage: float = 10.0
+## Damage on a knocked-out body (downed damage, before the damage type's
+## scale). Negative = same as [member damage].
+@export var downed_damage: float = -1.0
 @export var damage_type: DamageType = DamageType.BLUNT
 @export var reaction: Reaction = Reaction.FLINCH
 ## Breaks a guard instead of being blocked by it.
@@ -62,8 +76,14 @@ enum DamageType { BLUNT, BLADE, FIREARM }
 @export var hit_sound: AudioStream
 
 
-func get_total_time() -> float:
-	return windup + active + recovery
+## Playback speed, clamped so an attack never plays faster than its clip.
+func get_speed() -> float:
+	return clampf(speed, MIN_SPEED, MAX_SPEED)
+
+
+## Damage dealt to a knocked-out body.
+func get_downed_damage() -> float:
+	return downed_damage if downed_damage >= 0.0 else damage
 
 
 ## True for hits that should read as "heavy" (sound, flash).

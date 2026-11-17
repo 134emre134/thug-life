@@ -4,11 +4,15 @@ extends Node
 ## acceleration, slopes, stair stepping, jumping, rigid body pushing and
 ## knockback. Driven each physics tick through [method physics_update] with an
 ## [PlayerMovement.Intent], so it does not read input or know about cameras.
+##
+## Crouch (M4a.4): [member Intent.crouch] lowers the collision capsule and
+## slows movement. Standing up waits until there is room above (ceiling check).
 
 signal jumped
 signal landed(fall_speed: float)
+signal crouched_changed(crouched: bool)
 
-enum Gait { IDLE, WALK, RUN, SPRINT, STRAFE }
+enum Gait { IDLE, WALK, RUN, SPRINT, STRAFE, CROUCH }
 
 
 ## What the controller wants to do this tick.
@@ -18,6 +22,8 @@ class Intent:
 	var walk := false
 	var sprint := false
 	var jump := false
+	## Wants to be crouched. Standing up only happens when there is room.
+	var crouch := false
 	## Strafe mode (aiming): face [member face_yaw] instead of the move direction.
 	var strafe := false
 	var face_yaw := 0.0
@@ -30,6 +36,9 @@ class Intent:
 @export var body: CharacterBody3D
 ## Visual node that turns toward the movement / aim direction.
 @export var model: Node3D
+## Body capsule resized by crouching. Defaults to the body's first
+## CollisionShape3D with a capsule.
+@export var collision_shape: CollisionShape3D
 
 @export_group("Speeds (m/s)")
 @export var walk_speed: float = 2.0
@@ -48,6 +57,13 @@ class Intent:
 ## Exponential turn rate toward the move direction (higher = snappier).
 @export var turn_speed: float = 12.0
 @export var strafe_turn_speed: float = 25.0
+
+@export_group("Crouch")
+@export var crouch_speed: float = 1.3
+## Capsule height while crouched (standing height comes from the scene).
+@export var crouch_height: float = 1.15
+## Extra room needed above the crouched capsule before standing up (m).
+@export var stand_up_margin: float = 0.02
 
 @export_group("Jump & gravity")
 @export var jump_velocity: float = 4.8
@@ -78,12 +94,16 @@ class Intent:
 @export_range(0.0, 1.0) var knockback_control_factor: float = 0.1
 
 var gait: Gait = Gait.IDLE
+var is_crouched: bool = false
 
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 var _coyote_timer := 0.0
 var _jump_buffer_timer := 0.0
 var _knockback_timer := 0.0
 var _was_on_floor := true
+var _capsule: CapsuleShape3D = null
+var _stand_height: float = 0.0
+var _stand_shape_y: float = 0.0
 
 
 func _ready() -> void:
@@ -97,10 +117,21 @@ func _ready() -> void:
 	body.floor_constant_speed = true
 	body.floor_stop_on_slope = true
 	body.floor_block_on_wall = true
+	if collision_shape == null:
+		for child in body.get_children():
+			if child is CollisionShape3D and (child as CollisionShape3D).shape is CapsuleShape3D:
+				collision_shape = child
+				break
+	if collision_shape != null and collision_shape.shape is CapsuleShape3D:
+		_stand_height = (collision_shape.shape as CapsuleShape3D).height
+		_stand_shape_y = collision_shape.position.y
 
 
 func physics_update(delta: float, intent: Intent) -> void:
 	var on_floor := body.is_on_floor()
+	_update_crouch(intent, on_floor)
+	if is_crouched:
+		intent.jump = false
 	_update_timers(delta, on_floor, intent.jump)
 
 	var velocity := body.velocity
@@ -133,6 +164,14 @@ func apply_knockback(impulse: Vector3) -> void:
 	body.velocity += impulse / mass
 	_knockback_timer = knockback_control_lock
 	_coyote_timer = 0.0
+
+
+## True if the standing capsule fits where the body is (nothing overhead).
+func can_stand() -> bool:
+	if not is_crouched or _capsule == null:
+		return true
+	var rise := _stand_height - _capsule.height + stand_up_margin
+	return not body.test_move(body.global_transform, Vector3.UP * rise)
 
 
 func get_horizontal_speed() -> float:
@@ -170,6 +209,9 @@ func _apply_horizontal(velocity: Vector3, delta: float, intent: Intent, on_floor
 	var target_speed := run_speed
 	if input_strength <= 0.01:
 		gait = Gait.IDLE
+	elif is_crouched:
+		gait = Gait.CROUCH
+		target_speed = crouch_speed
 	elif intent.strafe:
 		gait = Gait.STRAFE
 		target_speed = strafe_speed
@@ -199,6 +241,28 @@ func _apply_horizontal(velocity: Vector3, delta: float, intent: Intent, on_floor
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
 	return velocity
+
+
+func _update_crouch(intent: Intent, on_floor: bool) -> void:
+	if collision_shape == null or _stand_height <= 0.0:
+		return
+	if intent.crouch and not is_crouched and on_floor:
+		_set_crouched(true)
+	elif not intent.crouch and is_crouched and can_stand():
+		_set_crouched(false)
+
+
+func _set_crouched(crouched: bool) -> void:
+	if _capsule == null:
+		# Own copy: the scene's shape resource is shared between instances.
+		_capsule = (collision_shape.shape as CapsuleShape3D).duplicate()
+		collision_shape.shape = _capsule
+	is_crouched = crouched
+	var height := minf(crouch_height, _stand_height) if crouched else _stand_height
+	_capsule.height = height
+	# Keep the capsule's bottom on the floor.
+	collision_shape.position.y = _stand_shape_y - (_stand_height - height) * 0.5
+	crouched_changed.emit(crouched)
 
 
 ## Lifts the body onto steps up to [member step_height] that block movement.

@@ -5,6 +5,8 @@ extends Node
 ## the current one so it doesn't flicker between two enemies.
 ##
 ## Candidates are [MeleeCombat] nodes in the "combatants" group on another team.
+## [method find_downed] does the same for knocked-out bodies on the ground
+## (stomp targets, M4a.5), aiming at where the body lies.
 
 @export var max_range: float = 5.0
 ## Half-angle of the cone around the view direction.
@@ -15,6 +17,9 @@ extends Node
 @export var distance_weight: float = 0.25
 ## Score bonus for the current target (hysteresis).
 @export var current_target_bonus: float = 0.15
+@export_group("Ground targets")
+## Half-angle of the cone for knocked-out bodies (stomps).
+@export_range(0.0, 180.0) var downed_angle_degrees: float = 75.0
 
 var current_target: MeleeCombat = null
 
@@ -50,4 +55,38 @@ func update(origin: Vector3, direction: Vector3, own: MeleeCombat) -> MeleeComba
 			best = candidate
 			best_score = score
 	current_target = best
+	return best
+
+
+## Best knocked-out (not dead) body on another team within [param max_distance]
+## of [param origin] and inside the ground-target cone around [param direction].
+## Distance is measured to where the body lies ([method MeleeCombat.get_target_point]).
+func find_downed(
+	origin: Vector3, direction: Vector3, own: MeleeCombat, max_distance: float
+) -> MeleeCombat:
+	var flat_dir := Vector3(direction.x, 0.0, direction.z)
+	if flat_dir.length_squared() < 0.0001:
+		return null
+	flat_dir = flat_dir.normalized()
+	var min_dot := cos(deg_to_rad(downed_angle_degrees))
+	var best: MeleeCombat = null
+	var best_score := -INF
+	for node in get_tree().get_nodes_in_group(&"combatants"):
+		var candidate := node as MeleeCombat
+		if candidate == null or candidate == own or not candidate.is_knocked_out():
+			continue
+		if own != null and candidate.team == own.team:
+			continue
+		var to_target := candidate.get_target_point() - origin
+		to_target.y = 0.0
+		var distance := to_target.length()
+		if distance > max_distance:
+			continue
+		var alignment := flat_dir.dot(to_target / distance) if distance > 0.001 else 1.0
+		if alignment < min_dot:
+			continue
+		var score := alignment * angle_weight - distance * distance_weight
+		if score > best_score:
+			best = candidate
+			best_score = score
 	return best

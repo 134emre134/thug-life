@@ -12,6 +12,10 @@ extends CharacterBody3D
 ##
 ## From M2 on, the right mouse button guards (unarmed and melee weapons). Aim
 ## mode is kept intact for firearms (M4) but is never entered.
+##
+## Crouch (M4a.4): toggle (or hold, see [member crouch_toggle]). Sprinting,
+## jumping, guarding, attacking, dodging and being hit stand the player up
+## when there is room; combat actions wait (buffered) until standing.
 
 ## Knocked out or killed.
 signal knocked_out
@@ -29,10 +33,15 @@ signal revived
 ## Holding the light attack button this long triggers a heavy attack instead.
 @export var heavy_hold_time: float = 0.28
 
+@export_group("Crouch")
+## True: the crouch key toggles. False: crouch while it is held.
+@export var crouch_toggle: bool = true
+
 var _attack_held_time: float = 0.0
 var _attack_charging: bool = false
 var _debug_clip_index: int = -1
 var _collision_layer: int = 0
+var _crouch_wanted: bool = false
 
 @onready var movement: PlayerMovement = $Movement
 @onready var camera_rig: CameraRig = $CameraRig
@@ -54,6 +63,8 @@ func _ready() -> void:
 	camera_rig.add_collision_exception(get_rid())
 	aim.add_collision_exception(get_rid())
 	interaction.add_collision_exception(get_rid())
+	combat.clip_source = animator
+	movement.jumped.connect(animator.notify_jump)
 	combat.clip_requested.connect(animator.play_combat_clip)
 	combat.clip_stopped.connect(animator.stop_combat_clip)
 	combat.hit_landed.connect(_on_hit_landed)
@@ -115,6 +126,9 @@ func _physics_process(delta: float) -> void:
 	combat_intent.dodge_direction = move_dir
 	combat_intent.look_direction = look
 	_read_attack_input(delta, active, combat_intent)
+	var sprint := Input.is_action_pressed(&"sprint") and input.length() > 0.01
+	_update_crouch_wish(active, sprint or jump, combat_intent)
+	combat_intent.hold_actions = movement.is_crouched
 	combat.physics_update(delta, combat_intent)
 
 	# Movement (camera-relative)
@@ -123,6 +137,7 @@ func _physics_process(delta: float) -> void:
 	intent.walk = Input.is_action_pressed(&"walk")
 	intent.sprint = Input.is_action_pressed(&"sprint")
 	intent.jump = jump
+	intent.crouch = _crouch_wanted
 	intent.strafe = aim.is_aiming
 	intent.face_yaw = camera_rig.yaw
 	combat.apply_to_movement(intent)
@@ -139,7 +154,12 @@ func _physics_process(delta: float) -> void:
 	interaction.update_hold(delta, hold, self)
 
 	# Animation
-	animator.update(delta, aim.is_aiming or combat.is_guarding(), combat.get_upper_body_clip())
+	animator.update(
+		delta,
+		aim.is_aiming or combat.is_guarding(),
+		combat.get_upper_body_clip(),
+		movement.is_crouched
+	)
 
 
 ## Push the player with a physical impulse (N·s). Used by explosions, hits,
@@ -169,6 +189,7 @@ func get_inventory() -> InventoryComponent:
 
 ## Back on your feet at [param at] with full health (fight restart).
 func revive(at: Transform3D) -> void:
+	_crouch_wanted = false
 	ragdoll.deactivate()
 	flash.clear()
 	health.revive()
@@ -193,6 +214,20 @@ func get_aim_origin() -> Vector3:
 ## Direction the character model is facing (horizontal).
 func get_facing() -> Vector3:
 	return -model.global_basis.z
+
+
+## Crouch wish from the crouch key (toggle or hold). Anything that needs the
+## player upright (sprint, jump, combat input, being hit) cancels it.
+func _update_crouch_wish(active: bool, stand: bool, intent: MeleeCombat.Intent) -> void:
+	if crouch_toggle:
+		if active and Input.is_action_just_pressed(&"crouch"):
+			_crouch_wanted = not _crouch_wanted
+	else:
+		_crouch_wanted = active and Input.is_action_pressed(&"crouch")
+	var combat_input := intent.light or intent.heavy or intent.guard or intent.dodge
+	combat_input = combat_input or _attack_charging
+	if stand or combat_input or combat.state != MeleeCombat.State.IDLE:
+		_crouch_wanted = false
 
 
 ## Tap = light attack (on release), hold = heavy (as soon as the hold time is
@@ -262,5 +297,5 @@ func _debug_play_next_clip() -> void:
 		return
 	_debug_clip_index = (_debug_clip_index + 1) % clips.size()
 	var clip := StringName(clips[_debug_clip_index])
-	animator.play_combat_clip(clip, animator.get_clip_length(clip))
+	animator.play_combat_clip(clip)
 	Events.notify("Clip %d/%d: %s" % [_debug_clip_index + 1, clips.size(), clip])

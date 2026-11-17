@@ -196,3 +196,32 @@ func _backwards() -> Vector3:
 	var back := -skeleton.global_basis.z
 	back.y = 0.0
 	return back.normalized() if back.length_squared() > 0.0001 else Vector3.BACK
+
+
+## True while the ragdoll lies with its front toward the ground (get up from
+## the front, M4a). Read from the simulated skeleton pose.
+func is_face_down() -> bool:
+	if skeleton == null:
+		return false
+	var hips := _bone_point(&"Hips")
+	var head := _bone_point(&"Head")
+	var left := _bone_point(&"LeftUpperLeg") - _bone_point(&"RightUpperLeg")
+	# Character space: left = +X, up = +Y, so left x up = forward (+Z).
+	var front := left.cross(head - hips)
+	return front.y < 0.0
+
+
+## Horizontal world direction from the pelvis to the head (zero if unknown).
+func get_head_direction() -> Vector3:
+	if skeleton == null:
+		return Vector3.ZERO
+	var direction := _bone_point(&"Head") - _bone_point(&"Hips")
+	direction.y = 0.0
+	return direction.normalized() if direction.length_squared() > 0.0001 else Vector3.ZERO
+
+
+func _bone_point(bone: StringName) -> Vector3:
+	var index := skeleton.find_bone(bone)
+	if index < 0:
+		return skeleton.global_position
+	return skeleton.global_transform * skeleton.get_bone_global_pose(index).origin

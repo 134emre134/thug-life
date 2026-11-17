@@ -13,6 +13,7 @@ script = ExtResource("1_weapon_data")
 light_combo = Array[ExtResource("2_attack_data")]([ExtResource("3_knife_1"), ExtResource("4_knife_2")])
 heavy_attack = ExtResource("5_knife_heavy")
 guard_clip = &"guard"
+ready_clip = &"knife_ready"
 held_scene = ExtResource("6_knife_model")
 pickup_scene = ExtResource("7_knife_pickup")
 id = &"knife"
