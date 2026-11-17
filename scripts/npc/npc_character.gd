@@ -1,8 +1,9 @@
 class_name NpcCharacter
 extends CharacterBody3D
 ## Thin NPC body, the counterpart of [Player]: its controller (any
-## [NpcController]: [ThugAI], [CivilianAI]) decides, and the shared components
-## act, in the same order as for the player: combat -> movement -> animation.
+## [NpcController]: [ThugAI], [RangedThugAI], [CivilianAI]) decides, and the
+## shared components act, in the same order as for the player: combat ->
+## ranged (only NPCs with a "Ranged" node) -> movement -> animation.
 ##
 ## Knocked out, it lies as a ragdoll that can still be hit (downed damage: the
 ## hurtbox follows the ragdoll) and searched ([BodySearch]); untouched, it
@@ -37,6 +38,8 @@ var _collision_layer: int = 0
 @onready var ai: NpcController = $AI
 @onready var inventory: InventoryComponent = $Inventory
 @onready var search: BodySearch = $Search
+## Optional (armed NPC variants, M4b).
+@onready var ranged: RangedCombat = get_node_or_null(^"Ranged") as RangedCombat
 
 
 func _ready() -> void:
@@ -49,6 +52,12 @@ func _ready() -> void:
 	combat.phase_changed.connect(_on_phase_changed)
 	combat.state_changed.connect(_on_state_changed)
 	combat.hit_taken.connect(_on_hit_taken)
+	movement.crouched_changed.connect(_on_crouched_changed)
+	if ranged != null:
+		ranged.clip_source = animator
+		ranged.clip_requested.connect(animator.play_upper_clip)
+		ranged.clip_stopped.connect(animator.stop_upper_clip)
+		ranged.telegraph_changed.connect(_on_telegraph_changed)
 	health.knocked_out.connect(_on_down)
 	health.killed.connect(_on_down)
 	health.recovered.connect(_on_recovered)
@@ -57,10 +66,16 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	ai.think(delta)
 	combat.physics_update(delta, ai.combat_intent)
+	if ranged != null:
+		ranged.physics_update(delta, ai.ranged_intent)
 	combat.apply_to_movement(ai.move_intent)
 	movement.physics_update(delta, ai.move_intent)
 	animator.update(
-		delta, ai.move_intent.strafe or combat.is_guarding(), combat.get_upper_body_clip()
+		delta,
+		ai.move_intent.strafe or combat.is_guarding(),
+		combat.get_upper_body_clip(),
+		movement.is_crouched,
+		combat.firearm != null
 	)
 
 
@@ -87,8 +102,18 @@ func _on_phase_changed(phase: MeleeCombat.Phase) -> void:
 
 
 func _on_state_changed(state: MeleeCombat.State) -> void:
-	if state != MeleeCombat.State.ATTACK:
+	if state != MeleeCombat.State.ATTACK and (ranged == null or not ranged.is_telegraphing()):
 		flash.set_telegraph(false)
+
+
+## Aiming at someone glows red like a melee windup (and shows a laser).
+func _on_telegraph_changed(on: bool) -> void:
+	flash.set_telegraph(on)
+
+
+## The hurtbox shrinks with the crouched capsule, so low cover hides the body.
+func _on_crouched_changed(crouched: bool) -> void:
+	hurtbox.set_height(movement.crouch_height if crouched else 0.0)
 
 
 func _on_hit_taken(
@@ -102,6 +127,8 @@ func _on_hit_taken(
 func _on_down(_victim: Node3D, _by: Node3D) -> void:
 	if not ragdoll.is_active:
 		ai.on_knocked_out()
+		if ranged != null:
+			ranged.reset()
 		flash.clear()
 		collision_layer = 0
 		ragdoll.activate(combat.last_hit_impulse * 1.5, velocity)

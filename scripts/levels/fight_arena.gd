@@ -4,25 +4,33 @@ extends Node3D
 ## fight for the current mode, lays out the weapons and starts it again
 ## without reloading the scene.
 ##   restart_fight   : same fight again (enemies, player, weapons reset)
-##   next_fight_mode : 1 vs 3 -> 1 vs 1 -> training dummy -> ...
+##   next_fight_mode : 1 vs 3 -> 1 vs 1 -> training dummy -> mixed -> ...
 ## The 1 vs 3 fight mixes NPC types (two thugs and a collector, with different
-## loot), as set on the spawner.
+## loot), as set on the spawner. The mixed fight (M4b.4) is melee thugs plus
+## rifle thugs ([member mixed_scenes]).
 ##
 ## Nodes are found by name when the exports are empty: EnemySpawner,
-## BatSpawns, KnifeSpawns, PlayerSpawn; the player through the "player" group.
+## BatSpawns, KnifeSpawns, RifleSpawns, MagazineSpawns, PlayerSpawn; the
+## player through the "player" group.
 
 signal fight_started(mode: Mode)
 
-enum Mode { ONE_VS_THREE, ONE_VS_ONE, DUMMY }
+enum Mode { ONE_VS_THREE, ONE_VS_ONE, DUMMY, MIXED }
 
-const MODE_NAMES := ["1 vs 3 thugs", "1 vs 1 thug", "Training dummy"]
+const MODE_NAMES := ["1 vs 3 thugs", "1 vs 1 thug", "Training dummy", "Mixed: 2 thugs + 2 rifles"]
 
 @export var mode: Mode = Mode.ONE_VS_THREE
 @export var bat_weapon: WeaponData
 @export var knife_weapon: WeaponData
+## Laid out at the RifleSpawns markers (M4b).
+@export var rifle_weapon: FirearmData
+## Ammo pickups laid out at the MagazineSpawns markers.
+@export var magazine_pickup: PackedScene
+## NPCs of the mixed fight, in spawn order (cycled over the spawn markers).
+@export var mixed_scenes: Array[PackedScene] = []
 ## Health of the training dummy (doesn't fight back).
 @export var dummy_health: float = 400.0
-## A restart takes the held weapon away (cash and pockets are kept).
+## A restart takes the weapons away (cash and pockets are kept).
 @export var restart_clears_weapon: bool = true
 ## A restart also removes weapons dropped during the fight (inside
 ## [member input_area], or anywhere without one).
@@ -35,6 +43,8 @@ const MODE_NAMES := ["1 vs 3 thugs", "1 vs 1 thug", "Training dummy"]
 @export var spawner: EnemySpawner
 @export var bat_spawns: Node3D
 @export var knife_spawns: Node3D
+@export var rifle_spawns: Node3D
+@export var magazine_spawns: Node3D
 @export var player_spawn: Marker3D
 @export var player: Player
 
@@ -48,6 +58,10 @@ func _ready() -> void:
 		bat_spawns = get_node_or_null(^"BatSpawns") as Node3D
 	if knife_spawns == null:
 		knife_spawns = get_node_or_null(^"KnifeSpawns") as Node3D
+	if rifle_spawns == null:
+		rifle_spawns = get_node_or_null(^"RifleSpawns") as Node3D
+	if magazine_spawns == null:
+		magazine_spawns = get_node_or_null(^"MagazineSpawns") as Node3D
 	if player_spawn == null:
 		player_spawn = get_node_or_null(^"PlayerSpawn") as Marker3D
 	_resolve_player()
@@ -74,10 +88,12 @@ func start_fight(reset_player: bool = true) -> void:
 	stop_fight()
 	_spawn_weapons(bat_weapon, bat_spawns)
 	_spawn_weapons(knife_weapon, knife_spawns)
+	_spawn_weapons(rifle_weapon, rifle_spawns)
+	_spawn_scene(magazine_pickup, magazine_spawns)
 	_resolve_player()
 	if reset_player and player != null and player_spawn != null:
 		if restart_clears_weapon:
-			player.inventory.clear_melee()
+			player.inventory.clear_weapons()
 		player.revive(player_spawn.global_transform)
 	match mode:
 		Mode.ONE_VS_THREE:
@@ -86,6 +102,8 @@ func start_fight(reset_player: bool = true) -> void:
 			spawner.spawn(1)
 		Mode.DUMMY:
 			spawner.spawn(1, _make_dummy)
+		Mode.MIXED:
+			spawner.spawn(mixed_scenes.size(), Callable(), mixed_scenes)
 	Events.notify("Fight: %s" % MODE_NAMES[mode])
 	fight_started.emit(mode)
 
@@ -132,6 +150,19 @@ func _spawn_weapons(weapon: WeaponData, markers: Node3D) -> void:
 		var pickup := weapon.pickup_scene.instantiate() as Node3D
 		if &"weapon" in pickup:
 			pickup.set(&"weapon", weapon)
+		add_child(pickup)
+		pickup.global_transform = (marker as Marker3D).global_transform
+		pickup.reset_physics_interpolation()
+		_weapons.append(pickup)
+
+
+func _spawn_scene(scene: PackedScene, markers: Node3D) -> void:
+	if scene == null or markers == null:
+		return
+	for marker in markers.get_children():
+		if not marker is Marker3D:
+			continue
+		var pickup := scene.instantiate() as Node3D
 		add_child(pickup)
 		pickup.global_transform = (marker as Marker3D).global_transform
 		pickup.reset_physics_interpolation()

@@ -1,0 +1,34 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/npc/thug.tscn" id="1_thug"]
+[ext_resource type="Script" path="res://scripts/npc/ranged_thug_ai.gd" id="2_ranged_ai"]
+[ext_resource type="Resource" path="res://data/loot/rifle_thug.tres" id="3_loot"]
+[ext_resource type="Resource" path="res://data/items/rifle.tres" id="4_rifle"]
+[ext_resource type="Script" path="res://scripts/components/ranged_combat.gd" id="5_ranged"]
+[ext_resource type="Script" path="res://scripts/components/firearm_effects.gd" id="6_firearm_fx"]
+[ext_resource type="Resource" path="res://data/attacks/thug_rifle_shot.tres" id="7_thug_shot"]
+
+[node name="RifleThug" instance=ExtResource("1_thug")]
+tint_color = Color(0.85, 0.75, 0.45, 1)
+
+[node name="Inventory" parent="."]
+start_firearm = ExtResource("4_rifle")
+loot_table = ExtResource("3_loot")
+
+[node name="AI" parent="." node_paths=PackedStringArray("ranged")]
+script = ExtResource("2_ranged_ai")
+ranged = NodePath("../Ranged")
+
+[node name="Ranged" type="Node" parent="." node_paths=PackedStringArray("body", "melee", "inventory", "hurtbox", "movement")]
+script = ExtResource("5_ranged")
+body = NodePath("..")
+melee = NodePath("../Combat")
+inventory = NodePath("../Inventory")
+hurtbox = NodePath("../Hurtbox")
+movement = NodePath("../Movement")
+attack_override = ExtResource("7_thug_shot")
+endless_ammo = true
+
+[node name="FirearmFx" type="Node3D" parent="." node_paths=PackedStringArray("ranged")]
+script = ExtResource("6_firearm_fx")
+ranged = NodePath("../Ranged")

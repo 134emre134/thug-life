@@ -14,6 +14,9 @@
 [ext_resource type="Resource" path="res://data/items/knife.tres" id="12_knife"]
 [ext_resource type="PackedScene" path="res://scenes/npc/collector.tscn" id="13_collector"]
 [ext_resource type="Script" path="res://scripts/levels/combat_gym.gd" id="20_combat_gym"]
+[ext_resource type="Resource" path="res://data/items/rifle.tres" id="14_rifle"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/pickup_rifle_magazine.tscn" id="15_magazine"]
+[ext_resource type="PackedScene" path="res://scenes/npc/rifle_thug.tscn" id="16_rifle_thug"]
 [ext_resource type="Script" path="res://scripts/levels/enemy_spawner.gd" id="21_enemy_spawner"]
 [ext_resource type="Script" path="res://scripts/npc/combat_director.gd" id="22_combat_director"]
 
@@ -47,6 +50,9 @@ agent_max_climb = 0.25
 script = ExtResource("20_combat_gym")
 bat_weapon = ExtResource("11_bat")
 knife_weapon = ExtResource("12_knife")
+rifle_weapon = ExtResource("14_rifle")
+magazine_pickup = ExtResource("15_magazine")
+mixed_scenes = Array[PackedScene]([ExtResource("7_thug"), ExtResource("7_thug"), ExtResource("16_rifle_thug"), ExtResource("16_rifle_thug")])
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_env")
@@ -141,6 +147,22 @@ collision_mask = 0
 size = Vector3(0.6, 0.9, 2.4)
 material = ExtResource("3_cover")
 
+[node name="LowCover3" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0.45, -14)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2.4, 0.9, 0.6)
+material = ExtResource("3_cover")
+
+[node name="LowCover4" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.45, -15)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2.4, 0.9, 0.6)
+material = ExtResource("3_cover")
+
 [node name="Pillar" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 6)
 use_collision = true
@@ -232,6 +254,9 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5, 0, -2)
 [node name="Spawn3" type="Marker3D" parent="EnemySpawner"]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 5, 0, -3)
 
+[node name="Spawn4" type="Marker3D" parent="EnemySpawner"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -7, 0, -17)
+
 [node name="BatSpawns" type="Node3D" parent="."]
 
 [node name="Bat1" type="Marker3D" parent="BatSpawns"]
@@ -244,6 +269,19 @@ transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 14, 0.1, 5)
 
 [node name="Knife1" type="Marker3D" parent="KnifeSpawns"]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -3, 0.05, 5)
+
+[node name="RifleSpawns" type="Node3D" parent="."]
+
+[node name="Rifle1" type="Marker3D" parent="RifleSpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.1, 10)
+
+[node name="MagazineSpawns" type="Node3D" parent="."]
+
+[node name="Magazine1" type="Marker3D" parent="MagazineSpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, 10)
+
+[node name="Magazine2" type="Marker3D" parent="MagazineSpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 10)
 
 [node name="PlayerSpawn" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)

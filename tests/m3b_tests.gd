@@ -140,7 +140,7 @@ func test_gym_fight() -> void:
 	for npc in first:
 		thugs += 1 if npc.scene_file_path.ends_with("thug.tscn") else 0
 	_check(thugs == 2, "two thugs and a collector")
-	_check(_weapon_pickups_in(gym).size() == 3, "bats and knife laid out")
+	_check(_weapon_pickups_in(gym).size() == 4, "bats, knife and rifle (M4b) laid out")
 	await _seconds(2.0)
 	var engaged := 0
 	for npc in first:
@@ -156,7 +156,7 @@ func test_gym_fight() -> void:
 	_check(fresh, "fresh enemies")
 	var spawn := gym.player_spawn.global_position
 	_check(player.global_position.distance_to(spawn) < 0.5, "player back at the gym spawn")
-	_check(_weapon_pickups_in(gym).size() == 3, "weapons reset, not duplicated")
+	_check(_weapon_pickups_in(gym).size() == 4, "weapons reset, not duplicated")
 	_check(is_instance_valid(district) and district.is_inside_tree(), "no scene reload")
 
 	_press_event(&"next_fight_mode")

@@ -1,9 +1,11 @@
 class_name NpcController
 extends Node
-## Base for NPC decision-making ([ThugAI], [CivilianAI]). Each tick
-## [NpcCharacter] calls [method think], then passes [member move_intent] and
-## [member combat_intent] to the same [PlayerMovement] and [MeleeCombat]
-## components the player uses. Controllers never move the body themselves.
+## Base for NPC decision-making ([ThugAI], [RangedThugAI], [CivilianAI]).
+## Each tick [NpcCharacter] calls [method think], then passes
+## [member move_intent], [member combat_intent] and (if it has one) the
+## [member ranged_intent] to the same [PlayerMovement], [MeleeCombat] and
+## [RangedCombat] components the player uses. Controllers never move the
+## body themselves.
 
 ## Disabled controllers stand still (training dummy, tests).
 @export var enabled: bool = true
@@ -14,6 +16,7 @@ extends Node
 
 var move_intent := PlayerMovement.Intent.new()
 var combat_intent := MeleeCombat.Intent.new()
+var ranged_intent := RangedCombat.Intent.new()
 
 
 func _ready() -> void:
@@ -25,6 +28,7 @@ func _ready() -> void:
 func think(_delta: float) -> void:
 	move_intent = PlayerMovement.Intent.new()
 	combat_intent = MeleeCombat.Intent.new()
+	ranged_intent = RangedCombat.Intent.new()
 
 
 ## Called by the NPC when knocked out or killed.

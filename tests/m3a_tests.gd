@@ -133,7 +133,7 @@ func test_inventory_slots() -> void:
 	var inventory := player.inventory
 	inventory.clear()
 	_check(inventory.pockets.size() == 4, "4 pocket slots")
-	_check(not inventory.firearm_slot_active, "firearm slot inactive until M4")
+	_check(inventory.firearm_slot_active, "firearm slot active (M4b)")
 	for i in 4:
 		_check(inventory.add_item(PHONE), "pocket %d takes an item" % (i + 1))
 	_check(not inventory.add_item(LIGHTER), "full pockets refuse items")

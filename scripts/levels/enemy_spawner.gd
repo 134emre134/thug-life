@@ -59,14 +59,18 @@ func _physics_process(delta: float) -> void:
 
 ## Spawns [param count] NPCs at the markers in order. [param configure] is
 ## called with each NPC before it enters the tree (e.g. to change exports).
-func spawn(count: int, configure: Callable = Callable()) -> Array[Node3D]:
+## [param scenes] replaces [member enemy_scenes] for this call (cycled).
+func spawn(
+	count: int, configure: Callable = Callable(), scenes: Array[PackedScene] = []
+) -> Array[Node3D]:
 	var markers := _markers()
 	var result: Array[Node3D] = []
-	if (enemy_scene == null and enemy_scenes.is_empty()) or markers.is_empty():
+	var no_scene := enemy_scene == null and enemy_scenes.is_empty() and scenes.is_empty()
+	if no_scene or markers.is_empty():
 		push_warning("EnemySpawner: no enemy scene or no Marker3D spawn points.")
 		return result
 	for i in count:
-		result.append(_spawn_at(markers[i % markers.size()], i, configure))
+		result.append(_spawn_at(markers[i % markers.size()], i, configure, scenes))
 	return result
 
 
@@ -121,11 +125,15 @@ func get_standing_count() -> int:
 	return count
 
 
-## Spawns one NPC at [param marker], using scene [param index] (cycled).
-func _spawn_at(marker: Marker3D, index: int, configure: Callable = Callable()) -> Node3D:
+## Spawns one NPC at [param marker], using scene [param index] (cycled) of
+## [param scenes], else of [member enemy_scenes].
+func _spawn_at(
+	marker: Marker3D, index: int, configure: Callable = Callable(), scenes: Array[PackedScene] = []
+) -> Node3D:
 	var scene := enemy_scene
-	if not enemy_scenes.is_empty() and enemy_scenes[index % enemy_scenes.size()] != null:
-		scene = enemy_scenes[index % enemy_scenes.size()]
+	var pool := scenes if not scenes.is_empty() else enemy_scenes
+	if not pool.is_empty() and pool[index % pool.size()] != null:
+		scene = pool[index % pool.size()]
 	_spawn_count += 1
 	var npc := scene.instantiate() as Node3D
 	if configure.is_valid():

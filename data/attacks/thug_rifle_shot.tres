@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="1_attack_data"]
+
+[resource]
+script = ExtResource("1_attack_data")
+id = &"thug_rifle_shot"
+damage = 15.0
+damage_type = 2
+reaction = 1
+breaks_guard = false
+can_be_blocked = false
+knockback = 70.0
+knockback_lift = 0.0
+hit_stop = 0.03
+camera_shake = 0.25

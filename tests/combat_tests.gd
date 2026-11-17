@@ -68,7 +68,7 @@ func test_arena_setup() -> void:
 	var region := arena.get_node(^"NavigationRegion3D") as NavigationRegion3D
 	_check(region.navigation_mesh.get_polygon_count() > 0, "navigation mesh baked")
 	_check(_enemies().size() == 3, "3 thugs spawned")
-	_check(_pickups().size() == 3, "2 bats and a knife in the arena")
+	_check(_pickups().size() == 4, "2 bats, a knife and a rifle (M4b) in the arena")
 	_check(get_tree().get_first_node_in_group(&"combat_director") != null, "director present")
 	_check(player.health.health == 150.0, "player at full health")
 	_check(Engine.time_scale == 1.0, "time scale normal")
@@ -562,7 +562,7 @@ func test_player_knockout_and_restart() -> void:
 		if not t.combat.is_knocked_out():
 			alive += 1
 	_check(alive == 3, "all fresh thugs standing")
-	_check(_pickups().size() == 3, "weapons reset")
+	_check(_pickups().size() == 4, "weapons reset")
 	arena.set(&"mode", MODE_ONE_VS_ONE)
 	_press_event(&"next_fight_mode")
 	await _frames(3)

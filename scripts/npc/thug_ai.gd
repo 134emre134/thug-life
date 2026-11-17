@@ -124,8 +124,7 @@ func think(delta: float) -> void:
 		return
 	_update_target()
 	if target == null:
-		_set_mode(Mode.IDLE)
-		_return_home()
+		_on_no_target()
 		return
 
 	var to_target := target.body.global_position - body.global_position
@@ -134,7 +133,27 @@ func think(delta: float) -> void:
 	var direction := to_target / distance if distance > 0.001 else -body.global_basis.z
 	combat_intent.target = target
 	combat_intent.look_direction = direction
+	_engage(delta, distance, direction)
 
+
+func on_knocked_out() -> void:
+	_set_mode(Mode.IDLE)
+
+
+## Takes part in the melee spacing around a target (ranged thugs keep their
+## distance instead).
+func uses_melee_spacing() -> bool:
+	return true
+
+
+func get_debug_text() -> String:
+	var token := director != null and director.has_token(self)
+	return "%s%s" % [Mode.keys()[mode], " [TOKEN]" if token else ""]
+
+
+## The melee fight against [member target] ([param distance] away, in
+## horizontal [param direction]). Ranged thugs override this.
+func _engage(delta: float, distance: float, direction: Vector3) -> void:
 	if combat.is_busy_reacting():
 		# Hit: give up the attack and keep distance afterwards.
 		if mode == Mode.ATTACK:
@@ -159,13 +178,10 @@ func think(delta: float) -> void:
 		move_intent.face_yaw = atan2(-direction.x, -direction.z)
 
 
-func on_knocked_out() -> void:
+## No target (none in range, or it went down): idle, walk home.
+func _on_no_target() -> void:
 	_set_mode(Mode.IDLE)
-
-
-func get_debug_text() -> String:
-	var token := director != null and director.has_token(self)
-	return "%s%s" % [Mode.keys()[mode], " [TOKEN]" if token else ""]
+	_return_home()
 
 
 func _approach(distance: float) -> void:
@@ -361,6 +377,8 @@ func _spacing(direction_to_target: Vector3) -> Vector3:
 	for member in director.get_members():
 		var other := member as ThugAI
 		if other == null or other == self or other.target != target or not other.enabled:
+			continue
+		if not other.uses_melee_spacing():
 			continue
 		if other.combat.is_down():
 			continue

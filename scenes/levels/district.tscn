@@ -30,6 +30,11 @@
 [ext_resource type="Script" path="res://scripts/levels/enemy_spawner.gd" id="28_enemy_spawner"]
 [ext_resource type="Script" path="res://scripts/npc/combat_director.gd" id="29_combat_director"]
 [ext_resource type="Script" path="res://scripts/npc/walk_route.gd" id="30_walk_route"]
+[ext_resource type="Resource" path="res://data/items/rifle.tres" id="31_rifle"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/pickup_rifle_magazine.tscn" id="32_magazine"]
+[ext_resource type="PackedScene" path="res://scenes/npc/rifle_thug.tscn" id="33_rifle_thug"]
+[ext_resource type="PackedScene" path="res://scenes/npc/street_rifle_thug.tscn" id="34_street_rifle_thug"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/weapon_pickup_rifle.tscn" id="35_rifle_pickup"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.38, 0.52, 0.72, 1)
@@ -1040,6 +1045,30 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.5, 0, -44)
 [node name="Spawn2" type="Marker3D" parent="NpcSpawners/ThugsNW"]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -44.5, 0, -40)
 
+[node name="RiflesSE" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("34_street_rifle_thug")
+container = NodePath("../../NPCs")
+population = 1
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/RiflesSE"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 47, 0, 24)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/RiflesSE"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 24, 0, 22)
+
+[node name="RiflesQuay" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
+script = ExtResource("28_enemy_spawner")
+enemy_scene = ExtResource("34_street_rifle_thug")
+container = NodePath("../../NPCs")
+population = 1
+
+[node name="Spawn1" type="Marker3D" parent="NpcSpawners/RiflesQuay"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 0, 41)
+
+[node name="Spawn2" type="Marker3D" parent="NpcSpawners/RiflesQuay"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, 44)
+
 [node name="CiviliansNorth" type="Node3D" parent="NpcSpawners" node_paths=PackedStringArray("container")]
 script = ExtResource("28_enemy_spawner")
 enemy_scene = ExtResource("19_civilian")
@@ -1095,6 +1124,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 30)
 script = ExtResource("27_fight_arena")
 bat_weapon = ExtResource("24_bat")
 knife_weapon = ExtResource("25_knife")
+rifle_weapon = ExtResource("31_rifle")
+magazine_pickup = ExtResource("32_magazine")
+mixed_scenes = Array[PackedScene]([ExtResource("16_thug"), ExtResource("16_thug"), ExtResource("33_rifle_thug"), ExtResource("33_rifle_thug")])
 restart_clears_weapon = false
 input_area = NodePath("InputArea")
 
@@ -1122,6 +1154,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31, 0, -27)
 [node name="Spawn3" type="Marker3D" parent="Gym/EnemySpawner"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41, 0, -26)
 
+[node name="Spawn4" type="Marker3D" parent="Gym/EnemySpawner"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0, -33)
+
 [node name="BatSpawns" type="Node3D" parent="Gym"]
 
 [node name="KnifeSpawns" type="Node3D" parent="Gym"]
@@ -1135,12 +1170,34 @@ transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 45, 0.1, -32)
 [node name="Knife1" type="Marker3D" parent="Gym/KnifeSpawns"]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 42, 0.05, -17)
 
+[node name="RifleSpawns" type="Node3D" parent="Gym"]
+
+[node name="Rifle1" type="Marker3D" parent="Gym/RifleSpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39, 0.1, -18)
+
+[node name="MagazineSpawns" type="Node3D" parent="Gym"]
+
+[node name="Magazine1" type="Marker3D" parent="Gym/MagazineSpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 0, -17.5)
+
+[node name="Magazine2" type="Marker3D" parent="Gym/MagazineSpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0, -17.5)
+
 [node name="PlayerSpawn" type="Marker3D" parent="Gym"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36, 0, -17)
 
 [node name="StartButton" parent="Gym" instance=ExtResource("23_push_button")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 0, -15.6)
 prompt = "Start fight"
+
+[node name="Stash" type="Node3D" parent="."]
+
+[node name="Rifle" parent="Stash" instance=ExtResource("35_rifle_pickup")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -13.2, 0.1, 26.6)
+weapon = ExtResource("31_rifle")
+
+[node name="Magazine" parent="Stash" instance=ExtResource("32_magazine")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.2, 0, 25.4)
 
 [node name="PlayerSpawn" type="Marker3D" parent="."]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -24, 0, 0)
