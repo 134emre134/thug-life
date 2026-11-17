@@ -5,26 +5,28 @@ extends SceneTree
 ##
 ## Run: godot --headless --script res://scripts/tools/build_humanoid_tree.gd
 ## Re-run after adding a clip to a table (edits made in the editor are lost
-## when the tree is rebuilt). Every clip in assets/animations/mixamo/ that is
-## not a firearm clip (rifle_*, grenade_*: M4b) also becomes an input of
-## combat_clip, so the F4 debug key can play all of them. The clip libraries
-## must be listed in the AnimationTree "libraries" of player.tscn and thug.tscn.
+## when the tree is rebuilt). Every clip in assets/animations/mixamo/ (except
+## the out-of-scope grenade_* clips) also becomes an input of combat_clip, so
+## the F4 debug key can play all of them. The clip libraries must be listed in
+## the AnimationTree "libraries" of player.tscn and thug.tscn.
 ##
 ## Layout (bottom to top):
-##   locomotion (1D) -> locomotion_speed --+
-##   strafe (2D) -> strafe_speed ---------- aim_blend --+
-##   crouch (1D) -> crouch_speed ----------------------- crouch_blend
+##   locomotion (1D) -> locomotion_speed --------------+
+##   strafe (2D) -> strafe_speed --------- rifle_blend -- aim_blend --+
+##   rifle_strafe (2D) -> rifle_strafe_speed --+                      |
+##   crouch (1D) -> crouch_speed ------------------------------------ crouch_blend
 ##   crouch_clip (stand_to_crouch / crouch_to_stand) -> crouch_shot (one-shot)
 ##   land_clip (standing / running / heavy) -> land_shot (one-shot)
 ##   air_clip (jump_standing / jump_running / fall) -> air_blend
 ##   guard_clip (upper-body poses) -> guard_blend (filtered: Spine and up)
+##   upper_clip (fire / reload) -> upper_speed -> upper_shot (one-shot, Spine and up)
 ##   combat_clip (all combat clips) -> combat_speed -> combat_blend -> output
 
 const OUTPUT := "res://assets/animations/humanoid_tree.tres"
 const CLIP_DIR := "res://assets/animations/mixamo/"
 const PLACEHOLDERS := "res://assets/animations/combat_placeholder.tres"
-## Clips of these families are left for M4b (firearms).
-const FIREARM_PREFIXES: PackedStringArray = ["rifle_", "grenade_"]
+## Clips of these families stay off the debug key (grenades are out of scope).
+const SKIPPED_PREFIXES: PackedStringArray = ["grenade_"]
 
 ## Blend points at each clip's measured ground speed (m/s), see CLIPS.md.
 const LOCOMOTION := [
@@ -36,6 +38,19 @@ const STRAFE := [
 	["aim_backward/aim_backward", Vector2(0, -1.32)],
 	["aim_right/aim_right", Vector2(2.18, 0)],
 	["aim_left/aim_left", Vector2(-2.06, 0)],
+]
+## Aiming with a firearm (M4b): the rifle clips at their ground speeds (the
+## drift the import removed; right = +x, forward = +y).
+const RIFLE_STRAFE := [
+	["rifle_aim_idle/rifle_aim_idle", Vector2(0, 0)],
+	["rifle_walk/rifle_walk", Vector2(0, 0.97)],
+	["rifle_run/rifle_run", Vector2(0, 2.93)],
+	["rifle_walk_backward/rifle_walk_backward", Vector2(0, -1.05)],
+	["rifle_run_backward/rifle_run_backward", Vector2(0, -2.67)],
+	["rifle_strafe_left/rifle_strafe_left", Vector2(-1.35, 0)],
+	["rifle_strafe_2/rifle_strafe_2", Vector2(-2.74, 0)],
+	["rifle_strafe_right/rifle_strafe_right", Vector2(0.73, 0)],
+	["rifle_strafe/rifle_strafe", Vector2(3.2, 0)],
 ]
 const CROUCH := [["crouch_idle/crouch_idle", 0.0], ["crouch_walk/crouch_walk", 1.28]]
 const CROUCH_CLIPS := {
@@ -58,6 +73,12 @@ const GUARD_CLIPS := {
 	"bat_guard": "combat/bat_guard",
 	"bat_ready": "combat/bat_ready",
 	"knife_ready": "knife_idle/knife_idle",
+	"rifle_ready": "rifle_aim_idle/rifle_aim_idle",
+}
+## Upper-body one-shots (upper_clip inputs; FirearmData.fire_clip / reload_clip).
+const UPPER_CLIPS := {
+	"rifle_fire": "rifle_fire/rifle_fire",
+	"rifle_reload": "rifle_reload/rifle_reload",
 }
 ## Combat layer inputs used by gameplay (AttackData.clip, MeleeCombat clips).
 ## Placeholders live in the "combat" library; real clips in their own.
@@ -82,6 +103,7 @@ const COMBAT_CLIPS := {
 	"knockdown_fall": "knockdown_fall/knockdown_fall",
 	"getup_from_back": "getup_from_back/getup_from_back",
 	"getup_from_front": "getup_from_front/getup_from_front",
+	"rifle_hit_react": "rifle_hit_react/rifle_hit_react",
 }
 ## Bones the guard pose doesn't touch (the legs keep moving).
 const LOWER_BODY: PackedStringArray = [
@@ -104,8 +126,11 @@ var _tree := AnimationNodeBlendTree.new()
 func _initialize() -> void:
 	_add(&"locomotion", _blend_space_1d(LOCOMOTION, 8.0), -900, 0)
 	_add(&"locomotion_speed", AnimationNodeTimeScale.new(), -650, 0)
-	_add(&"strafe", _blend_space_2d(), -900, 200)
+	_add(&"strafe", _blend_space_2d(STRAFE, 3.0), -900, 200)
 	_add(&"strafe_speed", AnimationNodeTimeScale.new(), -650, 200)
+	_add(&"rifle_strafe", _blend_space_2d(RIFLE_STRAFE, 3.5), -900, 300)
+	_add(&"rifle_strafe_speed", AnimationNodeTimeScale.new(), -650, 300)
+	_add(&"rifle_blend", AnimationNodeBlend2.new(), -540, 200)
 	_add(&"aim_blend", AnimationNodeBlend2.new(), -420, 60)
 	_add(&"crouch", _blend_space_1d(CROUCH, 3.0), -900, 400)
 	_add(&"crouch_speed", AnimationNodeTimeScale.new(), -650, 400)
@@ -117,7 +142,10 @@ func _initialize() -> void:
 	_add(&"air_clip", _transition(AIR_CLIPS.keys(), 0.15), 240, 400)
 	_add(&"air_blend", AnimationNodeBlend2.new(), 460, 60)
 	_add(&"guard_clip", _transition(GUARD_CLIPS.keys(), 0.15), 460, 400)
-	_add(&"guard_blend", _guard_blend(), 680, 60)
+	_add(&"guard_blend", _upper_body(AnimationNodeBlend2.new()), 680, 60)
+	_add(&"upper_clip", _transition(UPPER_CLIPS.keys(), 0.0, true), 680, 600)
+	_add(&"upper_speed", AnimationNodeTimeScale.new(), 900, 600)
+	_add(&"upper_shot", _upper_body(_one_shot(0.05, 0.15)), 900, 60)
 	var combat := _combat_inputs()
 	_add(&"combat_clip", _transition(combat.keys(), 0.06, true), 680, 400)
 	_add(&"combat_speed", AnimationNodeTimeScale.new(), 900, 400)
@@ -128,13 +156,17 @@ func _initialize() -> void:
 	_add_clip_nodes(LAND_CLIPS, &"land_", &"land_clip")
 	_add_clip_nodes(AIR_CLIPS, &"air_", &"air_clip")
 	_add_clip_nodes(GUARD_CLIPS, &"clip_", &"guard_clip")
+	_add_clip_nodes(UPPER_CLIPS, &"upper_", &"upper_clip")
 	_add_clip_nodes(combat, &"clip_", &"combat_clip")
 
 	_tree.connect_node(&"locomotion_speed", 0, &"locomotion")
 	_tree.connect_node(&"strafe_speed", 0, &"strafe")
 	_tree.connect_node(&"crouch_speed", 0, &"crouch")
+	_tree.connect_node(&"rifle_strafe_speed", 0, &"rifle_strafe")
+	_tree.connect_node(&"rifle_blend", 0, &"strafe_speed")
+	_tree.connect_node(&"rifle_blend", 1, &"rifle_strafe_speed")
 	_tree.connect_node(&"aim_blend", 0, &"locomotion_speed")
-	_tree.connect_node(&"aim_blend", 1, &"strafe_speed")
+	_tree.connect_node(&"aim_blend", 1, &"rifle_blend")
 	_tree.connect_node(&"crouch_blend", 0, &"aim_blend")
 	_tree.connect_node(&"crouch_blend", 1, &"crouch_speed")
 	_tree.connect_node(&"crouch_shot", 0, &"crouch_blend")
@@ -145,8 +177,11 @@ func _initialize() -> void:
 	_tree.connect_node(&"air_blend", 1, &"air_clip")
 	_tree.connect_node(&"guard_blend", 0, &"air_blend")
 	_tree.connect_node(&"guard_blend", 1, &"guard_clip")
+	_tree.connect_node(&"upper_speed", 0, &"upper_clip")
+	_tree.connect_node(&"upper_shot", 0, &"guard_blend")
+	_tree.connect_node(&"upper_shot", 1, &"upper_speed")
 	_tree.connect_node(&"combat_speed", 0, &"combat_clip")
-	_tree.connect_node(&"combat_blend", 0, &"guard_blend")
+	_tree.connect_node(&"combat_blend", 0, &"upper_shot")
 	_tree.connect_node(&"combat_blend", 1, &"combat_speed")
 	_tree.connect_node(&"output", 0, &"combat_blend")
 
@@ -155,7 +190,7 @@ func _initialize() -> void:
 	quit(error)
 
 
-## Gameplay clips first, then every other non-firearm clip (debug, F4).
+## Gameplay clips first, then every other clip (debug, F4), except grenades.
 func _combat_inputs() -> Dictionary:
 	var inputs := COMBAT_CLIPS.duplicate()
 	var files := Array(DirAccess.get_files_at(CLIP_DIR))
@@ -164,10 +199,10 @@ func _combat_inputs() -> Dictionary:
 		if not file.ends_with(".fbx"):
 			continue
 		var clip := file.get_basename()
-		var firearm := false
-		for prefix in FIREARM_PREFIXES:
-			firearm = firearm or clip.begins_with(prefix)
-		if firearm or inputs.has(clip):
+		var skipped := false
+		for prefix in SKIPPED_PREFIXES:
+			skipped = skipped or clip.begins_with(prefix)
+		if skipped or inputs.has(clip):
 			continue
 		inputs[clip] = "%s/%s" % [clip, clip]
 	return inputs
@@ -221,13 +256,13 @@ func _blend_space_1d(points: Array, max_space: float) -> AnimationNodeBlendSpace
 	return space
 
 
-func _blend_space_2d() -> AnimationNodeBlendSpace2D:
+func _blend_space_2d(points: Array, extent: float) -> AnimationNodeBlendSpace2D:
 	var space := AnimationNodeBlendSpace2D.new()
-	space.min_space = Vector2(-3, -3)
-	space.max_space = Vector2(3, 3)
+	space.min_space = Vector2(-extent, -extent)
+	space.max_space = Vector2(extent, extent)
 	space.x_label = "right (m/s)"
 	space.y_label = "forward (m/s)"
-	for point: Array in STRAFE:
+	for point: Array in points:
 		var node := AnimationNodeAnimation.new()
 		node.animation = StringName(point[0])
 		_check_animation(point[0])
@@ -235,15 +270,16 @@ func _blend_space_2d() -> AnimationNodeBlendSpace2D:
 	return space
 
 
-func _guard_blend() -> AnimationNodeBlend2:
-	var blend := AnimationNodeBlend2.new()
-	blend.filter_enabled = true
+## Filters [param node] to the upper body (every bone from Spine up), so the
+## legs keep their locomotion.
+func _upper_body(node: AnimationNode) -> AnimationNode:
+	node.filter_enabled = true
 	var profile := SkeletonProfileHumanoid.new()
 	for i in profile.bone_size:
 		var bone := String(profile.get_bone_name(i))
 		if not LOWER_BODY.has(bone):
-			blend.set_filter_path(NodePath("%s:%s" % [SKELETON, bone]), true)
-	return blend
+			node.set_filter_path(NodePath("%s:%s" % [SKELETON, bone]), true)
+	return node
 
 
 ## Warns about table entries that point at a missing animation.

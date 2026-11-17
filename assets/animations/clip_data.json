@@ -17,5 +17,6 @@
 	"jump_standing": {"segments": {"air": [0.5, 1.07], "land": [1.07, 1.65]}},
 	"jump_running": {"segments": {"air": [0.03, 0.6], "land": [0.6, 0.87]}},
 	"jump_drop_down": {"segments": {"air": [0.97, 1.35], "land": [1.33, 2.1]}},
-	"death_fall_back": {"markers": {"down": 1.6}}
+	"death_fall_back": {"markers": {"down": 1.6}},
+	"rifle_reload": {"markers": {"reload": 1.6, "end": 2.5}}
 }

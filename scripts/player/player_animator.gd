@@ -9,6 +9,9 @@ extends Node
 ##   locomotion_speed : TimeScale on locomotion
 ##   strafe       : BlendSpace2D, blend position = local velocity (x = right, y = forward, m/s)
 ##   strafe_speed : TimeScale on strafe
+##   rifle_strafe : BlendSpace2D like strafe, with the rifle clips (aiming a firearm)
+##   rifle_strafe_speed : TimeScale on rifle_strafe
+##   rifle_blend  : Blend2, 0 = strafe, 1 = rifle_strafe
 ##   aim_blend    : Blend2, 0 = locomotion, 1 = strafe (aiming and guarding)
 ##   crouch       : BlendSpace1D, crouched locomotion (speed, m/s)
 ##   crouch_speed : TimeScale on crouch
@@ -19,6 +22,8 @@ extends Node
 ##   air_blend    : Blend2, 0 = grounded, 1 = in the air
 ##   guard_clip   : Transition, one input per guard pose (upper body)
 ##   guard_blend  : Blend2 filtered to the upper body, 1 = guard pose
+##   upper_clip / upper_speed / upper_shot : Transition + TimeScale + OneShot
+##                  filtered to the upper body (firing and reloading, M4b)
 ##   combat_clip  : Transition, one input per combat clip (input name = clip name)
 ##   combat_speed : TimeScale, the playback speed combat asks for
 ##   combat_blend : Blend2, 0 = everything above, 1 = combat clip (full body)
@@ -49,6 +54,12 @@ const PARAM_COMBAT_SPEED := &"parameters/combat_speed/scale"
 const PARAM_COMBAT := &"parameters/combat_blend/blend_amount"
 const PARAM_LOCOMOTION_SPEED := &"parameters/locomotion_speed/scale"
 const PARAM_STRAFE_SPEED := &"parameters/strafe_speed/scale"
+const PARAM_RIFLE_STRAFE := &"parameters/rifle_strafe/blend_position"
+const PARAM_RIFLE_STRAFE_SPEED := &"parameters/rifle_strafe_speed/scale"
+const PARAM_RIFLE := &"parameters/rifle_blend/blend_amount"
+const PARAM_UPPER_CLIP := &"parameters/upper_clip/transition_request"
+const PARAM_UPPER_SPEED := &"parameters/upper_speed/scale"
+const PARAM_UPPER_SHOT := &"parameters/upper_shot/request"
 ## Marker that cuts a clip short (the tail after it is not played).
 const MARKER_END := &"end"
 
@@ -95,6 +106,10 @@ const MARKER_END := &"end"
 @export var combat_blend_out_speed: float = 6.0
 @export var guard_blend_speed: float = 10.0
 
+@export_group("Firearm")
+## Blend per second between the unarmed and the rifle strafe clips.
+@export var rifle_blend_speed: float = 8.0
+
 ## Clip currently requested on the combat layer (empty = none).
 var combat_clip: StringName = &""
 ## Playback speed of [member combat_clip].
@@ -103,6 +118,8 @@ var combat_clip_speed: float = 1.0
 var air_clip: StringName = &""
 ## Last landing clip played (empty = none yet).
 var last_land_clip: StringName = &""
+## Clip playing on the upper-body one-shot layer (empty = none).
+var upper_clip: StringName = &""
 
 var _speed: float = 0.0
 var _strafe := Vector2.ZERO
@@ -128,6 +145,11 @@ var _guard_inputs: PackedStringArray = []
 var _locomotion_max_speed: float = 0.0
 var _crouch_max_speed: float = 0.0
 var _strafe_points: PackedVector2Array = []
+var _rifle_strafe_points: PackedVector2Array = []
+var _rifle: float = 0.0
+var _upper_inputs: PackedStringArray = []
+var _upper_elapsed: float = 0.0
+var _upper_duration: float = 0.0
 var _warned: Dictionary = {}
 
 
@@ -139,14 +161,20 @@ func _ready() -> void:
 		return
 	_combat_inputs = _transition_inputs(&"combat_clip")
 	_guard_inputs = _transition_inputs(&"guard_clip")
+	_upper_inputs = _transition_inputs(&"upper_clip")
 	_read_blend_points()
 
 
 ## [param strafing]: use the strafe blend space (aiming or guarding).
 ## [param upper_body_clip]: pose to show on the upper body, e.g. guard (empty = none).
 ## [param crouched]: use the crouched locomotion.
+## [param firearm]: aiming uses the rifle strafe clips.
 func update(
-	delta: float, strafing: bool, upper_body_clip: StringName = &"", crouched: bool = false
+	delta: float,
+	strafing: bool,
+	upper_body_clip: StringName = &"",
+	crouched: bool = false,
+	firearm: bool = false
 ) -> void:
 	if animation_tree == null or body == null or model == null:
 		return
@@ -160,10 +188,16 @@ func update(
 	_aim = move_toward(_aim, 1.0 if strafing else 0.0, aim_blend_speed * delta)
 
 	animation_tree.set(PARAM_LOCOMOTION, _speed)
+	_rifle = move_toward(_rifle, 1.0 if firearm else 0.0, rifle_blend_speed * delta)
+
 	animation_tree.set(PARAM_STRAFE, _strafe)
+	animation_tree.set(PARAM_RIFLE_STRAFE, _strafe)
+	animation_tree.set(PARAM_RIFLE, _rifle)
 	animation_tree.set(PARAM_AIM, _aim)
 	animation_tree.set(PARAM_LOCOMOTION_SPEED, _scale_beyond(_speed, _locomotion_max_speed))
-	animation_tree.set(PARAM_STRAFE_SPEED, _strafe_scale(_strafe))
+	animation_tree.set(PARAM_STRAFE_SPEED, _strafe_scale(_strafe, _strafe_points))
+	animation_tree.set(PARAM_RIFLE_STRAFE_SPEED, _strafe_scale(_strafe, _rifle_strafe_points))
+	_update_upper(delta)
 	_update_crouch(delta, crouched)
 	_update_air(delta, velocity)
 	_update_guard(delta, upper_body_clip)
@@ -209,6 +243,29 @@ func stop_combat_clip() -> void:
 	_combat_target = 0.0
 
 
+## Plays [param clip] once on the upper body (firing, reloading) at
+## [param speed], up to its "end" marker; the legs keep walking.
+func play_upper_clip(clip: StringName, speed: float = 1.0) -> void:
+	if animation_tree == null or not _has_clip(clip, _upper_inputs):
+		return
+	var length := get_clip_end(clip)
+	if length <= 0.0 or speed <= 0.0:
+		return
+	upper_clip = clip
+	_upper_elapsed = 0.0
+	_upper_duration = length / speed
+	animation_tree.set(PARAM_UPPER_CLIP, String(clip))
+	animation_tree.set(PARAM_UPPER_SPEED, speed)
+	animation_tree.set(PARAM_UPPER_SHOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+
+func stop_upper_clip() -> void:
+	if animation_tree == null or upper_clip == &"":
+		return
+	upper_clip = &""
+	animation_tree.set(PARAM_UPPER_SHOT, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+
+
 ## Clip names available on the combat layer.
 func get_combat_clips() -> PackedStringArray:
 	return _combat_inputs
@@ -251,6 +308,8 @@ func _clip_animation(clip: StringName) -> Animation:
 		return null
 	var root := animation_tree.tree_root as AnimationNodeBlendTree
 	var node_name := StringName("clip_%s" % clip)
+	if root != null and not root.has_node(node_name):
+		node_name = StringName("upper_%s" % clip)
 	if root == null or not root.has_node(node_name):
 		return null
 	var node := root.get_node(node_name) as AnimationNodeAnimation
@@ -338,17 +397,17 @@ func _scale_beyond(speed: float, max_speed: float) -> float:
 
 
 ## Playback scale of the strafe clips: how far [param velocity] lies beyond the
-## outline of the blend points in its direction.
-func _strafe_scale(velocity: Vector2) -> float:
+## outline of the blend [param points] in its direction.
+func _strafe_scale(velocity: Vector2, points: PackedVector2Array) -> float:
 	var speed := velocity.length()
-	if speed < 0.01 or _strafe_points.size() < 3:
+	if speed < 0.01 or points.size() < 3:
 		return 1.0
 	var direction := velocity / speed
 	var reach := INF
-	var count := _strafe_points.size()
+	var count := points.size()
 	for i in count:
-		var a := _strafe_points[i]
-		var b := _strafe_points[(i + 1) % count]
+		var a := points[i]
+		var b := points[(i + 1) % count]
 		# Ray (origin, direction) against the segment a-b.
 		var edge := b - a
 		var denominator := direction.cross(edge)
@@ -370,18 +429,31 @@ func _read_blend_points() -> void:
 		return
 	_locomotion_max_speed = _max_point(root, &"locomotion")
 	_crouch_max_speed = _max_point(root, &"crouch")
-	if not root.has_node(&"strafe"):
-		return
-	var strafe := root.get_node(&"strafe") as AnimationNodeBlendSpace2D
-	if strafe == null:
-		return
+	_strafe_points = _outline(root, &"strafe")
+	_rifle_strafe_points = _outline(root, &"rifle_strafe")
+
+
+## The outermost blend points of a 2D blend space, sorted by angle.
+func _outline(root: AnimationNodeBlendTree, node_name: StringName) -> PackedVector2Array:
+	if not root.has_node(node_name):
+		return PackedVector2Array()
+	var space := root.get_node(node_name) as AnimationNodeBlendSpace2D
+	if space == null:
+		return PackedVector2Array()
+	# Per direction keep only the furthest point (inner points are slower clips).
+	var furthest := {}
+	for i in space.get_blend_point_count():
+		var point := space.get_blend_point_position(i)
+		if point.length() <= 0.01:
+			continue
+		var key := snappedf(point.angle(), 0.01)
+		if not furthest.has(key) or (furthest[key] as Vector2).length() < point.length():
+			furthest[key] = point
 	var outer: Array[Vector2] = []
-	for i in strafe.get_blend_point_count():
-		var point := strafe.get_blend_point_position(i)
-		if point.length() > 0.01:
-			outer.append(point)
+	for point: Vector2 in furthest.values():
+		outer.append(point)
 	outer.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.angle() < b.angle())
-	_strafe_points = PackedVector2Array(outer)
+	return PackedVector2Array(outer)
 
 
 func _max_point(root: AnimationNodeBlendTree, node_name: StringName) -> float:
@@ -402,6 +474,14 @@ func _update_guard(delta: float, guard_clip: StringName) -> void:
 		animation_tree.set(PARAM_GUARD_CLIP, String(guard_clip))
 	_guard = move_toward(_guard, 1.0 if guarding else 0.0, guard_blend_speed * delta)
 	animation_tree.set(PARAM_GUARD, _guard)
+
+
+func _update_upper(delta: float) -> void:
+	if upper_clip == &"":
+		return
+	_upper_elapsed += delta
+	if _upper_elapsed >= _upper_duration:
+		stop_upper_clip()
 
 
 func _update_combat(delta: float) -> void:

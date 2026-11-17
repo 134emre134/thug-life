@@ -105,21 +105,21 @@ func test_clip_pass() -> void:
 	_check(combat.flinch_clips.has(&"hit_react_face"), "flinch uses hit_react_face")
 	_check(combat.knockdown_clip == &"knockdown_fall", "knockdown uses knockdown_fall")
 	_check(combat.get_up_clip == &"getup_from_back", "get-up uses getup_from_back")
-	# Every non-firearm clip file is on the combat layer (F4 plays all clips),
-	# firearm clips are left for M4b.
+	# Every clip file is on the combat layer (F4 plays all clips), except the
+	# grenade clips (out of scope; the rifle clips are wired since M4b).
 	var missing: PackedStringArray = []
-	var firearm_wired: PackedStringArray = []
+	var grenade_wired: PackedStringArray = []
 	for file in DirAccess.get_files_at(CLIP_DIR):
 		if not file.ends_with(".fbx"):
 			continue
 		var clip := file.get_basename()
-		var firearm := clip.begins_with("rifle_") or clip.begins_with("grenade_")
-		if firearm and inputs.has(clip):
-			firearm_wired.append(clip)
-		elif not firearm and not inputs.has(clip):
+		var grenade := clip.begins_with("grenade_")
+		if grenade and inputs.has(clip):
+			grenade_wired.append(clip)
+		elif not grenade and not inputs.has(clip):
 			missing.append(clip)
-	_check(missing.is_empty(), "every non-firearm clip is on the combat layer %s" % [missing])
-	_check(firearm_wired.is_empty(), "firearm clips are not wired (M4b) %s" % [firearm_wired])
+	_check(missing.is_empty(), "every non-grenade clip is on the combat layer %s" % [missing])
+	_check(grenade_wired.is_empty(), "grenade clips are not wired %s" % [grenade_wired])
 	# File names are snake_case.
 	var bad_names: PackedStringArray = []
 	for file in DirAccess.get_files_at(CLIP_DIR):
