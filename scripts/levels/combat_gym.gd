@@ -1,6 +1,8 @@
 extends Node3D
-## M2 combat arena (M2.8). Bakes the navigation mesh, spawns the fight for
-## the current mode and restarts it without reloading the scene.
+## Combat arena (M2.8, extended in M3a). Bakes the navigation mesh, spawns the
+## fight for the current mode and restarts it without reloading the scene.
+## The 1 vs 3 fight mixes NPC types (two thugs and a collector, with different
+## loot); bats and knives lie around.
 ##   restart_fight   : same fight again (enemies, player, weapons reset)
 ##   next_fight_mode : 1 vs 3 -> 1 vs 1 -> training dummy -> ...
 
@@ -12,6 +14,7 @@ const MODE_NAMES := ["1 vs 3 thugs", "1 vs 1 thug", "Training dummy"]
 
 @export var mode: Mode = Mode.ONE_VS_THREE
 @export var bat_weapon: WeaponData
+@export var knife_weapon: WeaponData
 ## Health of the training dummy (doesn't fight back).
 @export var dummy_health: float = 400.0
 @export var kill_height: float = -20.0
@@ -22,6 +25,7 @@ const MODE_NAMES := ["1 vs 3 thugs", "1 vs 1 thug", "Training dummy"]
 @onready var _player_spawn: Marker3D = $PlayerSpawn
 @onready var _spawner: EnemySpawner = $EnemySpawner
 @onready var _bat_spawns: Node3D = $BatSpawns
+@onready var _knife_spawns: Node3D = $KnifeSpawns
 @onready var _navigation: NavigationRegion3D = $NavigationRegion3D
 
 
@@ -53,7 +57,10 @@ func start_fight() -> void:
 	for pickup in get_tree().get_nodes_in_group(&"weapon_pickups"):
 		pickup.get_parent().remove_child(pickup)
 		pickup.queue_free()
-	_spawn_weapons()
+	_spawn_weapons(bat_weapon, _bat_spawns)
+	_spawn_weapons(knife_weapon, _knife_spawns)
+	# A restart takes the held weapon away (cash and pockets are kept).
+	_player.inventory.clear_melee()
 	_player.revive(_player_spawn.global_transform)
 	match mode:
 		Mode.ONE_VS_THREE:
@@ -82,15 +89,15 @@ func _wait_for_navigation() -> void:
 	push_warning("CombatGym: navigation map not ready; NPCs steer directly until it is.")
 
 
-func _spawn_weapons() -> void:
-	if bat_weapon == null or bat_weapon.pickup_scene == null:
+func _spawn_weapons(weapon: WeaponData, markers: Node3D) -> void:
+	if weapon == null or weapon.pickup_scene == null:
 		return
-	for marker in _bat_spawns.get_children():
+	for marker in markers.get_children():
 		if not marker is Marker3D:
 			continue
-		var pickup := bat_weapon.pickup_scene.instantiate() as Node3D
+		var pickup := weapon.pickup_scene.instantiate() as Node3D
 		if &"weapon" in pickup:
-			pickup.set(&"weapon", bat_weapon)
+			pickup.set(&"weapon", weapon)
 		add_child(pickup)
 		pickup.global_transform = (marker as Marker3D).global_transform
 		pickup.reset_physics_interpolation()

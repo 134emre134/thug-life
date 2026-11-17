@@ -8,6 +8,8 @@ extends Area3D
 
 ## Emitted when the best target changes (null = no target).
 signal target_changed(target: Interactable)
+## Progress (0..1) of a held interaction changed; 0 = cancelled or finished.
+signal hold_progress_changed(progress: float)
 
 ## Max angle between the view direction and the target (horizontal).
 @export_range(0.0, 180.0) var max_angle_degrees: float = 65.0
@@ -20,6 +22,10 @@ signal target_changed(target: Interactable)
 @export_flags_3d_physics var line_of_sight_mask: int = 1
 
 var current_target: Interactable = null
+## Target of the interaction being held (null = none).
+var hold_target: Interactable = null
+## Progress of the held interaction (0..1).
+var hold_progress: float = 0.0
 
 var _exclude: Array[RID] = []
 
@@ -73,14 +79,55 @@ func update(view_origin: Vector3, view_direction: Vector3) -> void:
 		target_changed.emit(best)
 
 
-## Uses the current target. Returns true if something was triggered.
+## Uses the current target if it is instant (held ones go through
+## [method update_hold]). Returns true if something was triggered.
 func try_interact(interactor: Node3D) -> bool:
 	if not is_instance_valid(current_target) or not _is_usable(current_target):
 		return false
-	if not current_target.can_interact(interactor):
+	if current_target.is_hold() or not current_target.can_interact(interactor):
 		return false
 	current_target.interact(interactor)
 	return true
+
+
+## Advances a held interaction on the current target while [param held] is
+## true; it triggers once the target's hold time is reached. Releasing, or the
+## target changing or becoming unusable, cancels it. Returns true on the tick
+## the interaction completes.
+func update_hold(delta: float, held: bool, interactor: Node3D) -> bool:
+	var target := current_target if is_instance_valid(current_target) else null
+	var valid := (
+		held
+		and target != null
+		and target.is_hold()
+		and _is_usable(target)
+		and target.can_interact(interactor)
+	)
+	if not valid or (hold_target != null and target != hold_target):
+		cancel_hold()
+		if not valid:
+			return false
+	hold_target = target
+	hold_progress = minf(hold_progress + delta / target.hold_time, 1.0)
+	hold_progress_changed.emit(hold_progress)
+	if hold_progress < 1.0:
+		return false
+	cancel_hold()
+	target.interact(interactor)
+	return true
+
+
+## A held interaction is in progress.
+func is_holding() -> bool:
+	return hold_target != null
+
+
+func cancel_hold() -> void:
+	if hold_target == null and hold_progress == 0.0:
+		return
+	hold_target = null
+	hold_progress = 0.0
+	hold_progress_changed.emit(0.0)
 
 
 ## Interactables leaving the scene (picked up, level reset) can still be in the

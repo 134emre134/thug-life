@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://scenes/props/barrel.tscn" id="9_barrel"]
 [ext_resource type="PackedScene" path="res://scenes/props/heavy_crate.tscn" id="10_heavy_crate"]
 [ext_resource type="Resource" path="res://data/items/bat.tres" id="11_bat"]
+[ext_resource type="Resource" path="res://data/items/knife.tres" id="12_knife"]
+[ext_resource type="PackedScene" path="res://scenes/npc/collector.tscn" id="13_collector"]
 [ext_resource type="Script" path="res://scripts/levels/combat_gym.gd" id="20_combat_gym"]
 [ext_resource type="Script" path="res://scripts/levels/enemy_spawner.gd" id="21_enemy_spawner"]
 [ext_resource type="Script" path="res://scripts/npc/combat_director.gd" id="22_combat_director"]
@@ -44,6 +46,7 @@ agent_max_climb = 0.25
 [node name="CombatGym" type="Node3D"]
 script = ExtResource("20_combat_gym")
 bat_weapon = ExtResource("11_bat")
+knife_weapon = ExtResource("12_knife")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_env")
@@ -217,6 +220,7 @@ script = ExtResource("22_combat_director")
 [node name="EnemySpawner" type="Node3D" parent="." node_paths=PackedStringArray("container")]
 script = ExtResource("21_enemy_spawner")
 enemy_scene = ExtResource("7_thug")
+enemy_scenes = Array[PackedScene]([ExtResource("7_thug"), ExtResource("7_thug"), ExtResource("13_collector")])
 container = NodePath("../Enemies")
 
 [node name="Spawn1" type="Marker3D" parent="EnemySpawner"]
@@ -235,6 +239,11 @@ transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 2, 0.1, 5)
 
 [node name="Bat2" type="Marker3D" parent="BatSpawns"]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 14, 0.1, 5)
+
+[node name="KnifeSpawns" type="Node3D" parent="."]
+
+[node name="Knife1" type="Marker3D" parent="KnifeSpawns"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -3, 0.05, 5)
 
 [node name="PlayerSpawn" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)

@@ -103,7 +103,7 @@ func think(delta: float) -> void:
 	_repath_timer -= delta
 	_guard_timer -= delta
 	_guard_cooldown_timer -= delta
-	if not enabled or combat.is_knocked_out():
+	if not enabled or combat.is_down():
 		return
 	_update_target()
 	if target == null:
@@ -141,7 +141,7 @@ func think(delta: float) -> void:
 		move_intent.face_yaw = atan2(-direction.x, -direction.z)
 
 
-## Called by the NPC when knocked out.
+## Called by the NPC when knocked out or killed.
 func on_knocked_out() -> void:
 	_set_mode(Mode.IDLE)
 
@@ -294,7 +294,7 @@ func _spacing(direction_to_target: Vector3) -> Vector3:
 		var other := member as ThugAI
 		if other == null or other == self or other.target != target or not other.enabled:
 			continue
-		if other.combat.is_knocked_out():
+		if other.combat.is_down():
 			continue
 		var to_target := target.body.global_position - other.body.global_position
 		var angle := atan2(-to_target.x, -to_target.z)

@@ -18,3 +18,7 @@ extends ItemData
 @export var held_scene: PackedScene
 ## World pickup spawned when dropped. Empty = cannot be dropped (fists).
 @export var pickup_scene: PackedScene
+
+
+func get_slot() -> ItemData.Slot:
+	return ItemData.Slot.MELEE

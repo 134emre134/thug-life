@@ -12,7 +12,11 @@ extends Node
 ## to its animator.
 ##
 ## Combat knows nothing about crime: it reports [signal hit_landed] here and
-## knockouts on the [HealthComponent]; the M3b CrimeManager listens to those.
+## knockouts and deaths on the [HealthComponent]; the M3b CrimeManager listens
+## to those.
+##
+## Combat doesn't own weapons: it fights with whatever [method set_weapon]
+## put in hand. The [InventoryComponent] owns, holsters and drops them.
 
 signal state_changed(state: State)
 signal phase_changed(phase: Phase)
@@ -30,7 +34,7 @@ signal clip_requested(clip: StringName, duration: float, hit_time: float, hit_at
 signal clip_stopped
 signal weapon_changed(weapon: WeaponData)
 
-enum State { IDLE, ATTACK, GUARD, DODGE, REACTION, KNOCKDOWN, KNOCKED_OUT }
+enum State { IDLE, ATTACK, GUARD, DODGE, REACTION, KNOCKDOWN, KNOCKED_OUT, DEAD }
 enum Phase { NONE, WINDUP, ACTIVE, RECOVERY }
 enum Action { NONE, LIGHT, HEAVY, DODGE }
 
@@ -68,8 +72,6 @@ class Intent:
 @export var team: StringName = &"player"
 ## Used when no weapon is held.
 @export var unarmed: WeaponData
-## Weapon held at start / after [method reset].
-@export var start_weapon: WeaponData
 
 @export_group("Input")
 ## How long a pressed action waits for its turn (seconds).
@@ -121,10 +123,6 @@ class Intent:
 @export var knockdown_clip: StringName = &"knockdown"
 @export var get_up_clip: StringName = &"get_up"
 
-@export_group("Weapon drop")
-## Velocity given to a dropped weapon pickup (m/s, local to the model: -Z forward).
-@export var drop_velocity: Vector3 = Vector3(0.0, 1.5, -1.0)
-
 var state: State = State.IDLE
 var phase: Phase = Phase.NONE
 ## Current attack (null outside the ATTACK state).
@@ -171,14 +169,14 @@ func _ready() -> void:
 		if hurtbox.health == null:
 			hurtbox.health = health
 	if health != null:
-		health.knocked_out.connect(_on_knocked_out)
-	if start_weapon != null:
-		equip.call_deferred(start_weapon)
+		health.knocked_out.connect(_on_down)
+		health.killed.connect(_on_down)
+		health.recovered.connect(_on_recovered)
 
 
 func physics_update(delta: float, intent: Intent) -> void:
 	_tick_timers(delta)
-	if state == State.KNOCKED_OUT:
+	if is_down():
 		return
 	if intent.look_direction.length_squared() > 0.0001:
 		_look_yaw = atan2(-intent.look_direction.x, -intent.look_direction.z)
@@ -237,8 +235,10 @@ func apply_to_movement(intent: PlayerMovement.Intent) -> void:
 func receive_hit(
 	attacker: Node3D, hit_attack: AttackData, direction: Vector3
 ) -> HurtboxComponent.HitResult:
-	if state == State.KNOCKED_OUT or (health != null and health.is_knocked_out()):
+	if state == State.DEAD or (health != null and not health.can_take_damage()):
 		return HurtboxComponent.HitResult.IGNORED
+	if state == State.KNOCKED_OUT or (health != null and health.is_down()):
+		return _receive_downed_hit(attacker, hit_attack, direction)
 	if is_invulnerable():
 		var dodged := state == State.DODGE
 		if dodged:
@@ -261,6 +261,9 @@ func receive_hit(
 	var damage := hit_attack.damage * (guard_break_damage_scale if guarded else 1.0)
 	if health != null:
 		health.take_damage(damage, attacker, hit_attack)
+		if health.is_dead():
+			hit_taken.emit(attacker, hit_attack, HurtboxComponent.HitResult.KILLED)
+			return HurtboxComponent.HitResult.KILLED
 		if health.is_knocked_out():
 			hit_taken.emit(attacker, hit_attack, HurtboxComponent.HitResult.KNOCKED_OUT)
 			return HurtboxComponent.HitResult.KNOCKED_OUT
@@ -283,38 +286,17 @@ func receive_hit(
 	return HurtboxComponent.HitResult.HIT
 
 
-## Takes [param new_weapon] in hand; a held weapon is dropped first.
-func equip(new_weapon: WeaponData) -> void:
+## Puts [param new_weapon] in hand (null = [member unarmed]). Whatever was
+## held before is simply let go; the [InventoryComponent] decides where it goes.
+func set_weapon(new_weapon: WeaponData) -> void:
 	if new_weapon == weapon:
 		return
-	if weapon != null:
-		drop_weapon()
 	weapon = new_weapon
+	# A new move set starts its combo from the first hit.
+	combo_index = -1
+	_last_was_light = false
 	_update_held_visual()
 	weapon_changed.emit(weapon)
-
-
-## Drops the held weapon as a world pickup (if it has one).
-func drop_weapon() -> void:
-	if weapon == null:
-		return
-	var dropped := weapon
-	weapon = null
-	_update_held_visual()
-	weapon_changed.emit(null)
-	if dropped.pickup_scene == null or not is_inside_tree():
-		return
-	var pickup := dropped.pickup_scene.instantiate() as Node3D
-	if &"weapon" in pickup:
-		pickup.set(&"weapon", dropped)
-	var origin := weapon_socket if weapon_socket != null else body
-	var spawn := origin.global_transform.orthonormalized()
-	get_tree().current_scene.add_child(pickup)
-	pickup.global_transform = spawn
-	pickup.reset_physics_interpolation()
-	if pickup is RigidBody3D:
-		var basis := model.global_basis if model != null else body.global_basis
-		(pickup as RigidBody3D).linear_velocity = body.velocity + basis * drop_velocity
 
 
 ## Back to a fresh, standing state (fight restart).
@@ -327,11 +309,6 @@ func reset() -> void:
 	combo_index = -1
 	last_hit_impulse = Vector3.ZERO
 	current_target = null
-	if weapon != start_weapon:
-		# A restart removes a held weapon instead of dropping it.
-		weapon = start_weapon
-		_update_held_visual()
-		weapon_changed.emit(weapon)
 	_set_state(State.IDLE)
 	clip_stopped.emit()
 
@@ -346,6 +323,15 @@ func is_guarding() -> bool:
 
 func is_knocked_out() -> bool:
 	return state == State.KNOCKED_OUT
+
+
+func is_dead() -> bool:
+	return state == State.DEAD
+
+
+## Knocked out or dead: out of the fight.
+func is_down() -> bool:
+	return state == State.KNOCKED_OUT or state == State.DEAD
 
 
 func is_busy_reacting() -> bool:
@@ -369,7 +355,7 @@ func is_invulnerable() -> bool:
 
 ## Can be chosen as a target by others.
 func is_targetable() -> bool:
-	return state != State.KNOCKED_OUT and is_inside_tree() and body.is_inside_tree()
+	return not is_down() and is_inside_tree() and body.is_inside_tree()
 
 
 func get_state_name() -> String:
@@ -631,12 +617,37 @@ func _return_to_neutral(intent: Intent) -> void:
 	clip_stopped.emit()
 
 
-func _on_knocked_out(_victim: Node3D, _by: Node3D) -> void:
+## Hit on a knocked-out body: downed damage, a shove of the body, no reaction.
+func _receive_downed_hit(
+	attacker: Node3D, hit_attack: AttackData, direction: Vector3
+) -> HurtboxComponent.HitResult:
+	if health == null:
+		return HurtboxComponent.HitResult.IGNORED
+	var flat := Vector3(direction.x, 0.0, direction.z).normalized()
+	health.take_damage(hit_attack.damage, attacker, hit_attack)
+	_knockback((flat + Vector3.UP * hit_attack.knockback_lift) * hit_attack.knockback)
+	var result := HurtboxComponent.HitResult.DOWNED_HIT
+	if health.is_dead():
+		result = HurtboxComponent.HitResult.KILLED
+	hit_taken.emit(attacker, hit_attack, result)
+	return result
+
+
+## Knocked out or killed (both can arrive, knockout first).
+func _on_down(_victim: Node3D, _by: Node3D) -> void:
 	_interrupt_attack()
 	_buffered = Action.NONE
-	_set_state(State.KNOCKED_OUT)
+	_getting_up = false
+	_set_state(State.DEAD if health.is_dead() else State.KNOCKED_OUT)
 	clip_stopped.emit()
-	drop_weapon()
+
+
+## Recovered from a knockout: play the get-up part of a knockdown.
+func _on_recovered(_victim: Node3D) -> void:
+	_set_state(State.KNOCKDOWN, true)
+	_state_time = knockdown_fall_time + knockdown_down_time
+	_getting_up = true
+	clip_requested.emit(get_up_clip, get_up_time, 0.0, 0.0, false)
 
 
 func _set_state(new_state: State, restart: bool = false) -> void:

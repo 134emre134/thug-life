@@ -26,6 +26,9 @@ const LAYER_INTERACTABLE := 1 << 3  # physics layer 4 "interactable"
 @export var focus_priority: float = 0.0
 ## Optional point used for distance / line-of-sight checks. Defaults to this node.
 @export var focus_point: Node3D
+## Seconds the interact button must be held (0 = instant). Held interactions
+## are driven by [method InteractionComponent.update_hold].
+@export var hold_time: float = 0.0
 
 
 func _ready() -> void:
@@ -45,6 +48,10 @@ func interact(interactor: Node3D) -> void:
 	interacted.emit(interactor)
 	if one_shot:
 		enabled = false
+
+
+func is_hold() -> bool:
+	return hold_time > 0.0
 
 
 func get_focus_position() -> Vector3:

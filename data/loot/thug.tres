@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/loot_table.gd" id="1_loot_table"]
+[ext_resource type="Script" path="res://scripts/data/loot_entry.gd" id="2_loot_entry"]
+[ext_resource type="Resource" path="res://data/items/lighter.tres" id="3_lighter"]
+[ext_resource type="Resource" path="res://data/items/phone.tres" id="4_phone"]
+
+[sub_resource type="Resource" id="Resource_lighter"]
+script = ExtResource("2_loot_entry")
+item = ExtResource("3_lighter")
+chance = 0.6
+
+[sub_resource type="Resource" id="Resource_phone"]
+script = ExtResource("2_loot_entry")
+item = ExtResource("4_phone")
+chance = 0.3
+
+[resource]
+script = ExtResource("1_loot_table")
+cash_min = 5
+cash_max = 30
+entries = Array[ExtResource("2_loot_entry")]([SubResource("Resource_lighter"), SubResource("Resource_phone")])

@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interactables/weapon_pickup.gd" id="1_weapon_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/props/knife_model.tscn" id="2_knife_model"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="3_interactable"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_knife"]
+friction = 0.9
+bounce = 0.05
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_knife"]
+size = Vector3(0.05, 0.3, 0.03)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_zone"]
+radius = 0.6
+
+[node name="WeaponPickupKnife" type="RigidBody3D"]
+collision_layer = 4
+collision_mask = 23
+mass = 0.3
+physics_material_override = SubResource("PhysicsMaterial_knife")
+angular_damp = 1.0
+script = ExtResource("1_weapon_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_knife")
+
+[node name="KnifeModel" parent="." instance=ExtResource("2_knife_model")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0)
+
+[node name="Interactable" type="Area3D" parent="."]
+script = ExtResource("3_interactable")
+prompt_text = "Pick up"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_zone")

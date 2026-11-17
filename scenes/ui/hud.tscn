@@ -37,6 +37,27 @@ font_color = Color(1, 0.85, 0.3, 1)
 outline_size = 5
 outline_color = Color(0, 0, 0, 0.9)
 
+[sub_resource type="LabelSettings" id="LabelSettings_cash"]
+font_size = 30
+font_color = Color(0.55, 0.95, 0.55, 1)
+outline_size = 6
+outline_color = Color(0, 0, 0, 0.9)
+
+[sub_resource type="LabelSettings" id="LabelSettings_inventory"]
+font_size = 18
+outline_size = 4
+outline_color = Color(0, 0, 0, 0.9)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hold_fill"]
+bg_color = Color(1, 0.85, 0.3, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.05, 0.05, 0.07, 0.8)
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("5_hud")
 
@@ -78,6 +99,18 @@ text = "[E] Interact"
 label_settings = SubResource("LabelSettings_prompt")
 horizontal_alignment = 1
 
+[node name="HoldBar" type="ProgressBar" parent="Prompt"]
+layout_mode = 0
+offset_left = 120
+offset_top = 34
+offset_right = 280
+offset_bottom = 42
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hold_fill")
+max_value = 1.0
+show_percentage = false
+
 [node name="Notification" type="Label" parent="."]
 layout_mode = 3
 anchors_preset = 5
@@ -109,7 +142,7 @@ anchor_top = 1
 anchor_right = 1
 anchor_bottom = 1
 offset_left = -330
-offset_top = -190
+offset_top = -210
 offset_right = -12
 offset_bottom = -12
 grow_horizontal = 0
@@ -120,7 +153,8 @@ horizontal_alignment = 2
 vertical_alignment = 2
 text = "WASD move · Shift sprint · Ctrl walk · Space jump
 LMB attack (hold: heavy) · MMB heavy · RMB guard
-Space while guarding: dodge · E pick up · G drop
+Space while guarding: dodge · E pick up / hold E search
+G drop · H holster · Tab inventory
 Q swap shoulder · F3 debug · F4 play clips
 F5 restart fight · F6 next mode · Esc release mouse"
 
@@ -158,3 +192,34 @@ text = "v"
 label_settings = SubResource("LabelSettings_target")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Cash" type="Label" parent="."]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1
+anchor_bottom = 1
+offset_left = 24
+offset_top = -128
+offset_right = 324
+offset_bottom = -88
+grow_vertical = 0
+mouse_filter = 2
+text = "$0"
+label_settings = SubResource("LabelSettings_cash")
+
+[node name="InventoryPanel" type="PanelContainer" parent="."]
+layout_mode = 3
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 24
+offset_top = -150
+offset_right = 344
+offset_bottom = 150
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Text" type="Label" parent="InventoryPanel"]
+layout_mode = 2
+label_settings = SubResource("LabelSettings_inventory")
