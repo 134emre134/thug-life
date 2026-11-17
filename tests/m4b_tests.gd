@@ -26,6 +26,7 @@ func _ready() -> void:
 		&"test_firearm_data",
 		&"test_pickup_and_shots_hit_crosshair",
 		&"test_shot_behind_cover_edge",
+		&"test_shot_hits_knocked_down",
 		&"test_ammo_and_reload",
 		&"test_weapon_switching",
 		&"test_switching_mid_fight",
@@ -183,6 +184,30 @@ func test_shot_behind_cover_edge() -> void:
 		)
 	)
 	_check(end.z > ARENA_PILLAR.z, "the shot hit the pillar, not the crosshair point")
+	Input.action_release(&"aim")
+
+
+## No knockdown i-frames (M4a): a shot at a knocked-down (not knocked-out)
+## target lands, deals damage and starts no new reaction.
+func test_shot_hits_knocked_down() -> void:
+	await _load_arena(MODE_DUMMY)
+	var dummy := _enemies()[0]
+	player.receive_item(RIFLE)
+	_place(player, ARENA_DUMMY + Vector3(0, 0, 6))
+	await _aim_at(ARENA_DUMMY + Vector3.UP * 1.0)
+	var knockdown := BAT.heavy_attack
+	dummy.hurtbox.receive_hit(player, knockdown, Vector3.FORWARD)
+	await _frames(20)
+	_check(dummy.combat.state == MeleeCombat.State.KNOCKDOWN, "dummy knocked down")
+	var health := dummy.health.health
+	await _aim_at(dummy.global_position + Vector3.UP * 0.4)
+	_check(dummy.combat.state == MeleeCombat.State.KNOCKDOWN, "still down")
+	await _fire()
+	_check(
+		dummy.health.health < health,
+		"the shot lands (%.0f -> %.0f)" % [health, dummy.health.health]
+	)
+	_check(dummy.combat.state == MeleeCombat.State.KNOCKDOWN, "no new reaction")
 	Input.action_release(&"aim")
 
 
