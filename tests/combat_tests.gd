@@ -408,7 +408,12 @@ func test_knockdown_and_get_up() -> void:
 	var health := dummy.health.health
 	await _tap(&"attack_light")
 	await _seconds(0.6)
-	_check(dummy.health.health == health, "no hits while down")
+	# No knockdown i-frames (GDD §7): the hit lands but starts no new reaction.
+	_check(dummy.health.health < health, "hits land while down")
+	_check(
+		dummy.combat.state in [MeleeCombat.State.KNOCKDOWN, MeleeCombat.State.KNOCKED_OUT],
+		"a hit while down starts no new reaction"
+	)
 	# The get-up clip decides how long it takes (M4a).
 	await _until(func() -> bool: return dummy.combat.state == MeleeCombat.State.IDLE, 5.0)
 	_check(dummy.combat.state == MeleeCombat.State.IDLE, "got up again")
