@@ -85,19 +85,17 @@ func test_clips_play() -> void:
 	var clips := player.animator.get_combat_clips()
 	_check(clips.size() >= 13, "combat clips in the tree (%d)" % clips.size())
 	var tree := player.get_node(^"AnimationTree") as AnimationTree
-	var arm := player.get_node(^"Model/Mannequin/Hips/Torso/ArmR") as Node3D
-	var hips := player.get_node(^"Model/Mannequin/Hips") as Node3D
 	for clip in clips:
 		_check(player.animator.get_clip_length(clip) > 0.0, "clip %s has an animation" % clip)
 		player.animator.play_combat_clip(clip, player.animator.get_clip_length(clip))
 		var moved := false
-		var start_arm := arm.rotation
-		var start_hips := hips.position
+		var start_hand := _bone(player, "RightHand").origin
+		var start_hips := _bone(player, "Hips").origin
 		for i in 20:
 			await _frames(1)
 			if (
-				arm.rotation.distance_to(start_arm) > 0.15
-				or hips.position.distance_to(start_hips) > 0.05
+				_bone(player, "RightHand").origin.distance_to(start_hand) > 0.1
+				or _bone(player, "Hips").origin.distance_to(start_hips) > 0.05
 			):
 				moved = true
 		var state := String(tree.get(&"parameters/combat_clip/current_state"))
@@ -116,23 +114,23 @@ func test_clips_play() -> void:
 func test_guard_pose_layer() -> void:
 	await _load_arena(MODE_DUMMY)
 	_park_enemies()
-	var arm := player.get_node(^"Model/Mannequin/Hips/Torso/ArmL") as Node3D
-	var leg := player.get_node(^"Model/Mannequin/Hips/LegL") as Node3D
 	Input.action_press(&"guard")
 	Input.action_press(&"move_left")
 	await _seconds(0.6)
 	_check(player.combat.is_guarding(), "guard state while held")
-	_check(absf(arm.rotation.x - 2.2) < 0.2, "guard pose on the arms (%.2f)" % arm.rotation.x)
+	var fist := _bone(player, "LeftHand").origin.y
+	var chest := _bone(player, "UpperChest").origin.y
+	_check(fist > chest + 0.1, "guard pose: fists above the chest (%.2f m)" % (fist - chest))
 	var strafe_speed := player.movement.get_horizontal_speed()
 	_check(
 		absf(strafe_speed - player.movement.strafe_speed) < 0.3,
 		"guard strafes (%.2f)" % strafe_speed
 	)
-	var leg_start := leg.rotation
+	var leg_start := _bone_rotation(player, "LeftLowerLeg")
 	var leg_moved := 0.0
 	for i in 30:
 		await _frames(1)
-		leg_moved = maxf(leg_moved, leg.rotation.distance_to(leg_start))
+		leg_moved = maxf(leg_moved, leg_start.angle_to(_bone_rotation(player, "LeftLowerLeg")))
 	_check(leg_moved > 0.1, "legs keep stepping under the guard (%.2f)" % leg_moved)
 	Input.action_release(&"move_left")
 	Input.action_release(&"guard")
@@ -358,8 +356,11 @@ func test_bat() -> void:
 	_press_event(&"interact")
 	await _frames(3)
 	_check(player.combat.weapon == BAT, "bat equipped")
-	var socket := player.get_node(^"Model/Mannequin/Hips/Torso/ArmR/HandR")
+	var socket := player.get_node(^"Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
 	_check(socket.get_child_count() == 1, "bat visible in hand")
+	await _seconds(0.5)
+	var hands := _bone(player, "LeftHand").origin.distance_to(_bone(player, "RightHand").origin)
+	_check(hands < 0.2, "both hands on the bat while idle (%.2f m apart)" % hands)
 	_check(not is_instance_valid(bat) or bat.is_queued_for_deletion(), "pickup removed")
 	_place(dummy, player.global_position + Vector3(0, 0, -2.0))
 	var timeline: Array = []
@@ -426,11 +427,9 @@ func test_knockout_drop_and_ragdoll() -> void:
 	_check(dummy.combat.is_knocked_out(), "dummy knocked out")
 	_check(dummy.health.state == HealthComponent.State.KNOCKED_OUT, "health state is KNOCKED_OUT")
 	_check(dummy.ragdoll.is_active, "ragdoll active")
-	_check(not dummy.model.visible, "model hidden")
-	var bodies := dummy.ragdoll.get_child(0).get_children().filter(
-		func(n: Node) -> bool: return n is RigidBody3D
-	)
-	_check(bodies.size() == 7, "7 ragdoll bodies (%d)" % bodies.size())
+	var skeleton := dummy.get_node(^"Model/Character/GeneralSkeleton")
+	var bodies := skeleton.find_children("*", "PhysicalBone3D", true, false)
+	_check(bodies.size() == dummy.ragdoll.bones.size(), "physical bones (%d)" % bodies.size())
 	_check(dummy.combat.weapon == null, "weapon dropped on knockout")
 	_check(_pickups().size() == before + 1, "dropped bat in the world")
 	_check(player.combat.current_target == null, "knocked-out enemy isn't a target")
@@ -530,7 +529,12 @@ func test_player_knockout_and_restart() -> void:
 	arena.start_fight()
 	await _frames(3)
 	_check(not player.combat.is_knocked_out(), "player revived")
-	_check(not player.ragdoll.is_active and player.model.visible, "player ragdoll removed")
+	_check(not player.ragdoll.is_active, "player ragdoll removed")
+	var player_skeleton := player.get_node(^"Model/Character/GeneralSkeleton")
+	_check(
+		player_skeleton.find_children("*", "PhysicalBone3D", true, false).is_empty(),
+		"physical bones freed"
+	)
 	_check(player.health.health == player.health.max_health, "player health full")
 	_check(_enemies().size() == 3, "3 fresh thugs")
 	var alive := 0
@@ -682,8 +686,19 @@ func _drive_npc_attack(npc: NpcCharacter, heavy: bool) -> void:
 
 
 func _has_overlay(npc: NpcCharacter) -> bool:
-	var mesh := npc.get_node(^"Model/Mannequin/Hips/Torso/Mesh") as MeshInstance3D
+	var mesh := npc.model.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
 	return mesh.material_overlay != null
+
+
+## Global transform of a bone of a character's model.
+func _bone(character: Node3D, bone: String) -> Transform3D:
+	var skeleton := character.get_node(^"Model/Character/GeneralSkeleton") as Skeleton3D
+	return skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(bone))
+
+
+func _bone_rotation(character: Node3D, bone: String) -> Quaternion:
+	var skeleton := character.get_node(^"Model/Character/GeneralSkeleton") as Skeleton3D
+	return skeleton.get_bone_pose_rotation(skeleton.find_bone(bone))
 
 
 func _check(condition: bool, message: String) -> void:

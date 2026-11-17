@@ -1,11 +1,10 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/npc/thug.tscn" id="1_thug"]
-[ext_resource type="StandardMaterial3D" path="res://assets/materials/collector_body.tres" id="2_collector_body"]
 [ext_resource type="Resource" path="res://data/loot/collector.tres" id="3_collector_loot"]
 
 [node name="Collector" instance=ExtResource("1_thug")]
-tint_material = ExtResource("2_collector_body")
+tint_color = Color(0.45, 0.55, 0.9, 1)
 
 [node name="Health" parent="."]
 max_health = 120.0

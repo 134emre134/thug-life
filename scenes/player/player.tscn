@@ -1,14 +1,23 @@
 [gd_scene format=3]
 
-[ext_resource type="AnimationLibrary" path="res://assets/animations/mannequin_placeholder.tres" id="1_mannequin_placeholder"]
+[ext_resource type="PackedScene" path="res://assets/models/player.fbx" id="40_character"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/combat_placeholder.tres" id="41_combat"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/idle.fbx" id="50_idle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/walk.fbx" id="51_walk"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/run.fbx" id="52_run"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/sprint.fbx" id="53_sprint"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_idle.fbx" id="54_aim_idle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_forward.fbx" id="55_aim_forward"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_backward.fbx" id="56_aim_backward"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_left.fbx" id="57_aim_left"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_right.fbx" id="58_aim_right"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/fall.fbx" id="59_fall"]
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="20_player"]
-[ext_resource type="PackedScene" path="res://scenes/player/mannequin.tscn" id="21_mannequin"]
 [ext_resource type="Script" path="res://scripts/player/player_movement.gd" id="22_player_movement"]
 [ext_resource type="Script" path="res://scripts/player/player_aim.gd" id="23_player_aim"]
 [ext_resource type="Script" path="res://scripts/components/interaction_component.gd" id="24_interaction_component"]
 [ext_resource type="Script" path="res://scripts/player/player_animator.gd" id="25_player_animator"]
 [ext_resource type="Script" path="res://scripts/camera/camera_rig.gd" id="26_camera_rig"]
-[ext_resource type="AnimationLibrary" path="res://assets/animations/mannequin_combat.tres" id="2_mannequin_combat"]
 [ext_resource type="AnimationNodeBlendTree" path="res://assets/animations/humanoid_tree.tres" id="3_humanoid_tree"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="27_health"]
 [ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="28_hurtbox"]
@@ -46,7 +55,14 @@ shape = SubResource("CapsuleShape3D_body")
 
 [node name="Model" type="Node3D" parent="."]
 
-[node name="Mannequin" parent="Model" instance=ExtResource("21_mannequin")]
+[node name="Character" parent="Model" instance=ExtResource("40_character")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="RightHandAttachment" type="BoneAttachment3D" parent="Model/Character/GeneralSkeleton"]
+bone_name = "RightHand"
+
+[node name="Grip" type="Node3D" parent="Model/Character/GeneralSkeleton/RightHandAttachment"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.15, 0.08, 0.03)
 
 [node name="Hitbox" type="Area3D" parent="Model"]
 script = ExtResource("29_hitbox")
@@ -54,10 +70,19 @@ script = ExtResource("29_hitbox")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Hitbox"]
 
 [node name="AnimationTree" type="AnimationTree" parent="."]
-root_node = NodePath("../Model/Mannequin")
+root_node = NodePath("../Model/Character")
 libraries = {
-&"": ExtResource("1_mannequin_placeholder"),
-&"combat": ExtResource("2_mannequin_combat")
+&"idle": ExtResource("50_idle"),
+&"walk": ExtResource("51_walk"),
+&"run": ExtResource("52_run"),
+&"sprint": ExtResource("53_sprint"),
+&"aim_idle": ExtResource("54_aim_idle"),
+&"aim_forward": ExtResource("55_aim_forward"),
+&"aim_backward": ExtResource("56_aim_backward"),
+&"aim_left": ExtResource("57_aim_left"),
+&"aim_right": ExtResource("58_aim_right"),
+&"fall": ExtResource("59_fall"),
+&"combat": ExtResource("41_combat")
 }
 tree_root = ExtResource("3_humanoid_tree")
 parameters/locomotion/blend_position = 0
@@ -105,7 +130,7 @@ health = NodePath("../Health")
 hitbox = NodePath("../Model/Hitbox")
 hurtbox = NodePath("../Hurtbox")
 targeting = NodePath("../Targeting")
-weapon_socket = NodePath("../Model/Mannequin/Hips/Torso/ArmR/HandR")
+weapon_socket = NodePath("../Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
 team = &"player"
 unarmed = ExtResource("32_fists")
 
@@ -115,12 +140,11 @@ combat = NodePath("../Combat")
 health = NodePath("../Health")
 body = NodePath("..")
 model = NodePath("../Model")
-drop_origin = NodePath("../Model/Mannequin/Hips/Torso/ArmR/HandR")
+drop_origin = NodePath("../Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
 
-[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("model")]
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("skeleton")]
 script = ExtResource("33_ragdoll")
-model = NodePath("../Model")
-segments = Array[NodePath]([NodePath("Mannequin/Hips"), NodePath("Mannequin/Hips/Torso"), NodePath("Mannequin/Hips/Torso/Head"), NodePath("Mannequin/Hips/Torso/ArmL"), NodePath("Mannequin/Hips/Torso/ArmR"), NodePath("Mannequin/Hips/LegL"), NodePath("Mannequin/Hips/LegR")])
+skeleton = NodePath("../Model/Character/GeneralSkeleton")
 
 [node name="Flash" type="Node" parent="." node_paths=PackedStringArray("model")]
 script = ExtResource("34_model_flash")

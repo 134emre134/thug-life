@@ -1,101 +1,128 @@
 class_name RagdollComponent
 extends Node
-## Knockout ragdoll built from the model's parts.
+## Knockout ragdoll on the character's skeleton (physical bones).
 ##
-## On [method activate] the model is hidden and every segment pivot listed in
-## [member segments] becomes a RigidBody3D carrying copies of its meshes, joined
-## to its nearest parent segment with a cone-twist joint at the pivot.
-## Works with any node-hierarchy model (the primitive mannequin). A skinned
-## Mixamo model would use PhysicalBoneSimulator3D instead; keep the
-## activate/deactivate API so callers don't change.
+## On [method activate] a PhysicalBoneSimulator3D with one PhysicalBone3D per
+## entry in [member bones] is created under the skeleton and starts simulating
+## from the current animated pose. Bones without a physical bone follow their
+## parent. Capsules run from each bone to [member bone_ends] (or its first
+## child). Built at runtime, so the imported model scene stays untouched.
 
-@export var model: Node3D
-## Segment pivots, relative to [member model]. The first one is the root.
-@export var segments: Array[NodePath] = []
+## Skeleton to ragdoll.
+@export var skeleton: Skeleton3D
+## Bones that get a physical body. The first one is the root (pelvis).
+@export var bones: PackedStringArray = [
+	"Hips",
+	"Spine",
+	"UpperChest",
+	"Head",
+	"LeftUpperArm",
+	"LeftLowerArm",
+	"RightUpperArm",
+	"RightLowerArm",
+	"LeftUpperLeg",
+	"LeftLowerLeg",
+	"RightUpperLeg",
+	"RightLowerLeg",
+]
+## Bone whose origin ends a body's capsule, when it isn't the first child.
+@export var bone_ends: Dictionary = {
+	"Hips": "Spine",
+	"Spine": "UpperChest",
+	"UpperChest": "Neck",
+	"Head": "",
+	"LeftLowerArm": "LeftHand",
+	"RightLowerArm": "RightHand",
+	"LeftLowerLeg": "LeftFoot",
+	"RightLowerLeg": "RightFoot",
+}
+## Bones that bend like a hinge (elbows, knees); the others use cone-twist joints.
+@export var hinge_bones: PackedStringArray = [
+	"LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg"
+]
+## Capsule radius per bone (m); missing bones use [member default_radius].
+@export var radii: Dictionary = {
+	"Hips": 0.13,
+	"Spine": 0.12,
+	"UpperChest": 0.14,
+	"Head": 0.1,
+	"LeftUpperLeg": 0.08,
+	"RightUpperLeg": 0.08,
+	"LeftLowerLeg": 0.06,
+	"RightLowerLeg": 0.06,
+}
+@export var default_radius: float = 0.05
+## Length used for bones without an end bone (e.g. the head).
+@export var default_length: float = 0.22
 @export var total_mass: float = 70.0
 @export_flags_3d_physics var collision_layer: int = 1 << 7  # layer 8 "ragdoll"
 @export_flags_3d_physics var collision_mask: int = 1 | 1 << 2 | 1 << 7
 @export var linear_damp: float = 0.1
 @export var angular_damp: float = 1.5
 ## Joint limits.
-@export var swing_degrees: float = 55.0
-@export var twist_degrees: float = 25.0
-## Shapes are shrunk by this factor so neighbouring segments don't start overlapping.
-@export_range(0.5, 1.0) var shape_scale: float = 0.9
-## Index into [member segments] that takes the extra topple impulse (chest).
-@export var impulse_segment: int = 1
-## Share of the impulse applied at the top of [member impulse_segment] (topples).
+@export var swing_degrees: float = 45.0
+@export var twist_degrees: float = 20.0
+## Index into [member bones] that takes the extra topple impulse (chest).
+@export var impulse_bone: int = 2
+## Share of the impulse applied at the chest (topples the body).
 @export_range(0.0, 1.0) var topple_share: float = 0.35
 ## Minimum topple impulse (N·s) at the chest, so even a weak final hit makes
-## the body collapse instead of balancing on its legs. Pushes backwards when
-## the hit has no direction.
+## the body collapse. Pushes backwards when the hit has no direction.
 @export var min_topple_impulse: float = 45.0
-## Segments longer than this ratio (length / thickness) get a capsule, which
-## rolls instead of standing on flat ends.
-@export var capsule_min_aspect: float = 1.8
 
 var is_active: bool = false
 
-var _container: Node3D = null
-var _bodies: Array[RigidBody3D] = []
+var _simulator: PhysicalBoneSimulator3D = null
+var _bodies: Array[PhysicalBone3D] = []
 
 
-## Spawns the ragdoll in the model's current pose. [param impulse] (N·s) is
-## spread over the whole ragdoll; [param velocity] is the character's velocity.
+## Starts the ragdoll from the current pose. [param impulse] (N·s) is spread
+## over the body; [param velocity] is the character's velocity.
 func activate(impulse: Vector3 = Vector3.ZERO, velocity: Vector3 = Vector3.ZERO) -> void:
-	if is_active or model == null or segments.is_empty():
+	if is_active or skeleton == null or bones.is_empty():
 		return
 	is_active = true
-	_container = Node3D.new()
-	_container.name = "RagdollBodies"
-	_container.top_level = true
-	add_child(_container)
-	_container.global_transform = Transform3D.IDENTITY
-
-	var pivots: Array[Node3D] = []
-	for path in segments:
-		pivots.append(model.get_node(path) as Node3D)
-	var volumes: Array[float] = []
+	_simulator = PhysicalBoneSimulator3D.new()
+	_simulator.name = "Ragdoll"
+	skeleton.add_child(_simulator)
+	var lengths := {}
 	var total_volume := 0.0
-	for pivot in pivots:
-		var body := _build_segment(pivot, pivots)
-		_bodies.append(body)
-		var volume := _shape_volume(body)
-		volumes.append(volume)
-		total_volume += volume
-	for i in _bodies.size():
-		_bodies[i].mass = maxf(total_mass * volumes[i] / maxf(total_volume, 0.0001), 0.5)
-	for i in range(1, pivots.size()):
-		var parent_index := _parent_segment(pivots[i], pivots)
-		if parent_index >= 0:
-			_join(_bodies[parent_index], _bodies[i], pivots[i].global_position)
+	for bone in bones:
+		var index := skeleton.find_bone(bone)
+		if index < 0:
+			push_warning("RagdollComponent: no bone '%s'." % bone)
+			continue
+		var length := _bone_length(index)
+		var radius: float = radii.get(bone, default_radius)
+		lengths[bone] = length
+		total_volume += PI * radius * radius * (length + radius)
+		_bodies.append(_create_body(bone, index, length, radius))
+	for body in _bodies:
+		var radius: float = radii.get(String(body.bone_name), default_radius)
+		var volume := PI * radius * radius * (float(lengths[String(body.bone_name)]) + radius)
+		body.mass = maxf(total_mass * volume / maxf(total_volume, 0.0001), 0.5)
+	_simulator.physical_bones_start_simulation()
 
-	model.visible = false
-	for i in _bodies.size():
-		var body := _bodies[i]
+	for body in _bodies:
 		body.linear_velocity = velocity
 		body.apply_central_impulse(impulse * body.mass / total_mass * (1.0 - topple_share))
-	if impulse_segment >= 0 and impulse_segment < _bodies.size():
-		var chest := _bodies[impulse_segment]
-		var topple := impulse * topple_share
-		topple.y = 0.0
+	if impulse_bone >= 0 and impulse_bone < _bodies.size():
+		var chest := _bodies[impulse_bone]
+		var topple := Vector3(impulse.x, 0.0, impulse.z) * topple_share
 		if topple.length() < min_topple_impulse:
-			var direction := topple.normalized() if topple.length() > 0.01 else model.global_basis.z
-			direction.y = 0.0
-			topple = direction.normalized() * min_topple_impulse
-		chest.apply_impulse(
-			topple + Vector3.UP * impulse.y * topple_share, chest.global_basis.y * 0.3
-		)
+			var direction := topple.normalized() if topple.length() > 0.01 else _backwards()
+			topple = direction * min_topple_impulse
+		chest.apply_impulse(topple + Vector3.UP * impulse.y * topple_share, Vector3.UP * 0.2)
 
 
-## Removes the ragdoll and shows the model again.
+## Stops the ragdoll; the skeleton follows the animation again.
 func deactivate() -> void:
-	if _container != null:
-		_container.queue_free()
-		_container = null
+	if _simulator != null:
+		_simulator.physical_bones_stop_simulation()
+		_simulator.get_parent().remove_child(_simulator)
+		_simulator.queue_free()
+		_simulator = null
 	_bodies.clear()
-	if model != null:
-		model.visible = true
 	is_active = false
 
 
@@ -106,118 +133,66 @@ func apply_impulse(impulse: Vector3) -> void:
 		body.apply_central_impulse(impulse * body.mass / total_mass)
 
 
-## Root body of the ragdoll (null when inactive).
-func get_root_body() -> RigidBody3D:
+## Pelvis body (null when inactive).
+func get_root_body() -> PhysicsBody3D:
 	return _bodies[0] if not _bodies.is_empty() else null
 
 
-func _build_segment(pivot: Node3D, pivots: Array[Node3D]) -> RigidBody3D:
-	var body := RigidBody3D.new()
+func _create_body(bone: String, index: int, length: float, radius: float) -> PhysicalBone3D:
+	var body := PhysicalBone3D.new()
+	body.name = bone
+	body.bone_name = bone
 	body.collision_layer = collision_layer
 	body.collision_mask = collision_mask
 	body.linear_damp = linear_damp
 	body.angular_damp = angular_damp
-	_container.add_child(body)
-	var pivot_xform := pivot.global_transform.orthonormalized()
-	body.global_transform = pivot_xform
-
-	var bounds := AABB()
-	var has_bounds := false
-	for mesh_instance in _collect_meshes(pivot, pivots):
-		var local := pivot_xform.affine_inverse() * mesh_instance.global_transform
-		var copy := MeshInstance3D.new()
-		copy.mesh = mesh_instance.mesh
-		copy.material_override = mesh_instance.material_override
-		copy.transform = local
-		body.add_child(copy)
-		var box := local * mesh_instance.mesh.get_aabb()
-		bounds = bounds.merge(box) if has_bounds else box
-		has_bounds = true
-	if not has_bounds:
-		bounds = AABB(Vector3.ONE * -0.05, Vector3.ONE * 0.1)
-
+	if hinge_bones.has(bone):
+		body.joint_type = PhysicalBone3D.JOINT_TYPE_HINGE
+		body.set(&"joint_constraints/angular_limit_enabled", true)
+		body.set(&"joint_constraints/angular_limit_upper", 0.0)
+		body.set(&"joint_constraints/angular_limit_lower", -140.0)
+	else:
+		body.joint_type = PhysicalBone3D.JOINT_TYPE_CONE
+		body.set(&"joint_constraints/swing_span", swing_degrees)
+		body.set(&"joint_constraints/twist_span", twist_degrees)
+	var shape := CapsuleShape3D.new()
+	shape.radius = radius
+	shape.height = maxf(length, radius * 2.0 + 0.01)
 	var collision := CollisionShape3D.new()
-	collision.shape = _fit_shape(bounds.size * shape_scale, collision)
-	collision.position = bounds.get_center()
+	collision.shape = shape
+	# Bones point along +Y; the capsule spans the bone.
+	collision.position = Vector3(0.0, length * 0.5, 0.0)
 	body.add_child(collision)
-	body.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
-	body.center_of_mass = bounds.get_center()
-	body.reset_physics_interpolation()
+	_simulator.add_child(body)
+	body.global_transform = (
+		(skeleton.global_transform * skeleton.get_bone_global_pose(index)).orthonormalized()
+	)
 	return body
 
 
-## Visible meshes under [param pivot], not descending into other segments.
-func _collect_meshes(pivot: Node, pivots: Array[Node3D]) -> Array[MeshInstance3D]:
-	var result: Array[MeshInstance3D] = []
-	for child in pivot.get_children():
-		if child is Node3D and pivots.has(child):
-			continue
-		if child.is_queued_for_deletion():
-			continue
-		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
-			if (child as MeshInstance3D).visible:
-				result.append(child)
-		result.append_array(_collect_meshes(child, pivots))
-	return result
+func _bone_length(index: int) -> float:
+	var bone := skeleton.get_bone_name(index)
+	var end_name: String = bone_ends.get(bone, "_first_child")
+	var end := -1
+	if end_name == "_first_child":
+		var children := skeleton.get_bone_children(index)
+		end = children[0] if not children.is_empty() else -1
+	elif end_name != "":
+		end = skeleton.find_bone(end_name)
+	if end < 0:
+		return default_length
+	return (
+		skeleton.get_bone_rest(end).origin.length()
+		if skeleton.get_bone_parent(end) == index
+		else (skeleton.get_bone_global_rest(end).origin.distance_to(
+			skeleton.get_bone_global_rest(index).origin
+		))
+	)
 
 
-func _parent_segment(pivot: Node3D, pivots: Array[Node3D]) -> int:
-	var node := pivot.get_parent()
-	while node != null and node != model.get_parent():
-		var index := pivots.find(node as Node3D) if node is Node3D else -1
-		if index >= 0:
-			return index
-		node = node.get_parent()
-	return 0 if pivots[0] != pivot else -1
-
-
-func _join(parent_body: RigidBody3D, child_body: RigidBody3D, at: Vector3) -> void:
-	var joint := ConeTwistJoint3D.new()
-	_container.add_child(joint)
-	# The cone axis (local X) points along the child limb.
-	var axis := child_body.global_transform * child_body.center_of_mass - at
-	axis = axis.normalized() if axis.length_squared() > 0.0001 else Vector3.DOWN
-	var up := Vector3.UP if absf(axis.dot(Vector3.UP)) < 0.95 else Vector3.FORWARD
-	var z := axis.cross(up).normalized()
-	var y := z.cross(axis).normalized()
-	joint.global_transform = Transform3D(Basis(axis, y, z), at)
-	joint.set_param(ConeTwistJoint3D.PARAM_SWING_SPAN, deg_to_rad(swing_degrees))
-	joint.set_param(ConeTwistJoint3D.PARAM_TWIST_SPAN, deg_to_rad(twist_degrees))
-	joint.node_a = joint.get_path_to(parent_body)
-	joint.node_b = joint.get_path_to(child_body)
-
-
-## Capsule along the longest axis for long segments (limbs), box otherwise.
-## Rotates [param collision] to match.
-func _fit_shape(size: Vector3, collision: CollisionShape3D) -> Shape3D:
-	size = size.max(Vector3.ONE * 0.04)
-	var axis := size.max_axis_index()
-	var length := size[axis]
-	var thickness := maxf(size[(axis + 1) % 3], size[(axis + 2) % 3])
-	if length < thickness * capsule_min_aspect:
-		var box := BoxShape3D.new()
-		box.size = size
-		return box
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = thickness * 0.5
-	capsule.height = length
-	# Capsules extend along local Y.
-	if axis == Vector3.AXIS_X:
-		collision.rotation = Vector3(0.0, 0.0, PI * 0.5)
-	elif axis == Vector3.AXIS_Z:
-		collision.rotation = Vector3(PI * 0.5, 0.0, 0.0)
-	return capsule
-
-
-func _shape_volume(body: RigidBody3D) -> float:
-	for child in body.get_children():
-		var collision := child as CollisionShape3D
-		if collision == null:
-			continue
-		if collision.shape is BoxShape3D:
-			var size := (collision.shape as BoxShape3D).size
-			return size.x * size.y * size.z
-		if collision.shape is CapsuleShape3D:
-			var capsule := collision.shape as CapsuleShape3D
-			return PI * capsule.radius * capsule.radius * capsule.height
-	return 0.001
+func _backwards() -> Vector3:
+	# The model faces -Z in world space after its 180° turn in the scene; the
+	# skeleton's own forward is +Z, so backwards is the skeleton's -Z.
+	var back := -skeleton.global_basis.z
+	back.y = 0.0
+	return back.normalized() if back.length_squared() > 0.0001 else Vector3.BACK

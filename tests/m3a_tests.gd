@@ -65,7 +65,7 @@ func test_inventory_bat() -> void:
 	await _load_arena(MODE_ONE_VS_ONE)
 	_park_enemies()
 	var inventory := player.inventory
-	var socket := player.get_node(^"Model/Mannequin/Hips/Torso/ArmR/HandR")
+	var socket := player.get_node(^"Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
 	var bat := _pickup_of(BAT)
 	bat.global_transform = Transform3D(
 		Basis(Vector3.RIGHT, PI / 2), player.global_position + Vector3(0, 0.1, -0.9)

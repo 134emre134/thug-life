@@ -13,10 +13,9 @@ signal knocked_out(npc: NpcCharacter)
 signal killed(npc: NpcCharacter)
 signal recovered(npc: NpcCharacter)
 
-## Materials on the model that get replaced by [member tint_material] (e.g.
-## the mannequin body material), so enemies read differently from the player.
-@export var tint_replace: Material
-@export var tint_material: Material
+## Multiplied into the model's materials (per-instance copies), so enemies
+## read differently from the player. White = no tint.
+@export var tint_color: Color = Color.WHITE
 
 var _collision_layer: int = 0
 
@@ -52,7 +51,9 @@ func _physics_process(delta: float) -> void:
 	combat.physics_update(delta, ai.combat_intent)
 	combat.apply_to_movement(ai.move_intent)
 	movement.physics_update(delta, ai.move_intent)
-	animator.update(delta, ai.move_intent.strafe or combat.is_guarding(), combat.get_guard_clip())
+	animator.update(
+		delta, ai.move_intent.strafe or combat.is_guarding(), combat.get_upper_body_clip()
+	)
 
 
 ## Physical push (N·s), duck-typed like the player's. A downed NPC's ragdoll
@@ -119,11 +120,16 @@ func _on_recovered(_victim: Node3D) -> void:
 
 
 func _apply_tint(node: Node) -> void:
-	if tint_replace == null or tint_material == null:
+	if tint_color == Color.WHITE:
 		return
 	for child in node.get_children():
 		var mesh_instance := child as MeshInstance3D
-		if mesh_instance != null and mesh_instance.mesh is PrimitiveMesh:
-			if (mesh_instance.mesh as PrimitiveMesh).material == tint_replace:
-				mesh_instance.material_override = tint_material
+		if mesh_instance != null and mesh_instance.mesh != null:
+			for surface in mesh_instance.mesh.get_surface_count():
+				var material := mesh_instance.get_active_material(surface) as BaseMaterial3D
+				if material == null:
+					continue
+				var tinted := material.duplicate() as BaseMaterial3D
+				tinted.albedo_color *= tint_color
+				mesh_instance.set_surface_override_material(surface, tinted)
 		_apply_tint(child)
