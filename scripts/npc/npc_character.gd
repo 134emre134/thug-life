@@ -1,8 +1,8 @@
 class_name NpcCharacter
 extends CharacterBody3D
-## Thin NPC body, the counterpart of [Player]: its controller ([ThugAI])
-## decides, and the shared components act, in the same order as for the
-## player: combat -> movement -> animation.
+## Thin NPC body, the counterpart of [Player]: its controller (any
+## [NpcController]: [ThugAI], [CivilianAI]) decides, and the shared components
+## act, in the same order as for the player: combat -> movement -> animation.
 ##
 ## Knocked out, it lies as a ragdoll that can still be hit (downed damage: the
 ## hurtbox follows the ragdoll) and searched ([BodySearch]); untouched, it
@@ -27,7 +27,7 @@ var _collision_layer: int = 0
 @onready var animator: PlayerAnimator = $Animator
 @onready var ragdoll: RagdollComponent = $Ragdoll
 @onready var flash: ModelFlash = $Flash
-@onready var ai: ThugAI = $AI
+@onready var ai: NpcController = $AI
 @onready var inventory: InventoryComponent = $Inventory
 @onready var search: BodySearch = $Search
 
@@ -65,7 +65,7 @@ func apply_knockback(impulse: Vector3) -> void:
 		movement.apply_knockback(impulse)
 
 
-## Duck-typed access for body searches and (M3b) pickpocketing.
+## Duck-typed access for body searches and (M5a) pickpocketing.
 func get_inventory() -> InventoryComponent:
 	return inventory
 
@@ -116,6 +116,7 @@ func _on_recovered(_victim: Node3D) -> void:
 	collision_layer = _collision_layer
 	velocity = Vector3.ZERO
 	reset_physics_interpolation()
+	ai.on_recovered()
 	recovered.emit(self)
 
 

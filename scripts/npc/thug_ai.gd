@@ -1,5 +1,5 @@
 class_name ThugAI
-extends Node
+extends NpcController
 ## Decision-making for one melee thug (M2.7). Each tick [method think] fills
 ## [member move_intent] and [member combat_intent]; [NpcCharacter] passes them
 ## to the same [PlayerMovement] and [MeleeCombat] components the player uses.
@@ -10,20 +10,31 @@ extends Node
 ## committed at the start of the windup (no tracking) and telegraphed, so they
 ## can be seen coming and dodged. Occasionally guards against the target's
 ## attacks.
+##
+## Aggro (M3b): with an [member aggro_radius] the thug only picks targets that
+## come that close (and are in sight), drops them beyond [member lose_radius]
+## and walks back to where it spawned. Hitting it always provokes it. With
+## the defaults (0) it hunts the nearest target anywhere, as in the arena.
 
 enum Mode { IDLE, APPROACH, CIRCLE, ATTACK, BACK_OFF }
 
-## Disabled thugs stand still (training dummy).
-@export var enabled: bool = true
-@export var body: CharacterBody3D
-@export var combat: MeleeCombat
-## Optional; without it the thug walks straight at its goal.
-@export var agent: NavigationAgent3D
 ## Optional; found through the "combat_director" group when empty. Without a
 ## director every attack request is granted.
 @export var director: CombatDirector
 ## Team this thug attacks.
 @export var target_team: StringName = &"player"
+
+@export_group("Aggro")
+## Only pick targets within this distance. 0 = any distance (arena).
+@export var aggro_radius: float = 0.0
+## Drop the target beyond this distance from the thug. 0 = never.
+@export var lose_radius: float = 0.0
+## A target must be in sight (world geometry) to be picked up.
+@export var aggro_needs_line_of_sight: bool = true
+## Eye height for line-of-sight checks.
+@export var eye_height: float = 1.6
+## Back home when this close to the spawn point.
+@export var home_tolerance: float = 1.0
 
 @export_group("Distances (m)")
 ## Start circling within this distance of the target.
@@ -65,8 +76,8 @@ enum Mode { IDLE, APPROACH, CIRCLE, ATTACK, BACK_OFF }
 
 var mode: Mode = Mode.IDLE
 var target: MeleeCombat = null
-var move_intent := PlayerMovement.Intent.new()
-var combat_intent := MeleeCombat.Intent.new()
+## Where the thug returns to without a target (its spawn point).
+var home_position := Vector3.ZERO
 
 var _mode_time: float = 0.0
 var _repath_timer: float = 0.0
@@ -78,17 +89,20 @@ var _guard_cooldown_timer: float = 0.0
 var _seen_target_serial: int = -1
 var _circle_dir: float = 1.0
 var _circle_dir_timer: float = 0.0
+var _has_home: bool = false
+var _provoked_by: MeleeCombat = null
 
 
 func _ready() -> void:
-	if body == null:
-		body = get_parent() as CharacterBody3D
+	super()
 	_circle_dir = 1.0 if randf() < 0.5 else -1.0
 	_circle_dir_timer = randf_range(0.5, 1.5) * circle_direction_time
 	if director == null:
 		director = get_tree().get_first_node_in_group(&"combat_director") as CombatDirector
 	if director != null:
 		director.register(self)
+	if combat != null:
+		combat.hit_taken.connect(_on_hit_taken)
 
 
 func _exit_tree() -> void:
@@ -97,8 +111,11 @@ func _exit_tree() -> void:
 
 
 func think(delta: float) -> void:
-	move_intent = PlayerMovement.Intent.new()
-	combat_intent = MeleeCombat.Intent.new()
+	super(delta)
+	if not _has_home:
+		# The spawner places the body after _ready.
+		home_position = body.global_position
+		_has_home = true
 	_mode_time += delta
 	_repath_timer -= delta
 	_guard_timer -= delta
@@ -108,6 +125,7 @@ func think(delta: float) -> void:
 	_update_target()
 	if target == null:
 		_set_mode(Mode.IDLE)
+		_return_home()
 		return
 
 	var to_target := target.body.global_position - body.global_position
@@ -141,9 +159,13 @@ func think(delta: float) -> void:
 		move_intent.face_yaw = atan2(-direction.x, -direction.z)
 
 
-## Called by the NPC when knocked out or killed.
 func on_knocked_out() -> void:
 	_set_mode(Mode.IDLE)
+
+
+func get_debug_text() -> String:
+	var token := director != null and director.has_token(self)
+	return "%s%s" % [Mode.keys()[mode], " [TOKEN]" if token else ""]
 
 
 func _approach(distance: float) -> void:
@@ -234,20 +256,66 @@ func _update_guard(distance: float) -> void:
 
 
 func _update_target() -> void:
-	if target != null and is_instance_valid(target) and target.is_targetable():
+	if target != null and _keeps_target(target):
 		return
 	target = null
+	if _provoked_by != null and _keeps_target(_provoked_by):
+		target = _provoked_by
+		return
+	_provoked_by = null
 	var best_distance := INF
 	for node in get_tree().get_nodes_in_group(&"combatants"):
 		var candidate := node as MeleeCombat
 		if candidate == null or candidate.team != target_team or not candidate.is_targetable():
 			continue
 		var distance := candidate.body.global_position.distance_to(body.global_position)
-		if distance < best_distance:
-			best_distance = distance
-			target = candidate
+		if distance >= best_distance:
+			continue
+		if aggro_radius > 0.0 and (distance > aggro_radius or not _can_see(candidate)):
+			continue
+		best_distance = distance
+		target = candidate
 	if target == null:
 		_release_token()
+
+
+func _keeps_target(candidate: MeleeCombat) -> bool:
+	if not is_instance_valid(candidate) or not candidate.is_targetable():
+		return false
+	if lose_radius <= 0.0:
+		return true
+	return candidate.body.global_position.distance_to(body.global_position) <= lose_radius
+
+
+func _can_see(candidate: MeleeCombat) -> bool:
+	if not aggro_needs_line_of_sight:
+		return true
+	var eye := body.global_position + Vector3.UP * eye_height
+	return has_line_of_sight(eye, candidate.body.global_position + Vector3.UP * eye_height)
+
+
+## Walks back to the spawn point (only for thugs with a limited aggro radius).
+func _return_home() -> void:
+	if aggro_radius <= 0.0:
+		return
+	var offset := home_position - body.global_position
+	offset.y = 0.0
+	if offset.length() > home_tolerance:
+		move_intent.move_direction = _steer_to(home_position)
+		move_intent.walk = true
+
+
+## Hitting a thug makes the attacker its target, whatever the distance.
+func _on_hit_taken(
+	attacker: Node3D, _attack: AttackData, _result: HurtboxComponent.HitResult
+) -> void:
+	for node in get_tree().get_nodes_in_group(&"combatants"):
+		var candidate := node as MeleeCombat
+		if candidate != null and candidate.body == attacker and candidate.team == target_team:
+			_provoked_by = candidate
+			if target == null:
+				target = candidate
+			return
 
 
 ## Direction toward [param goal], following the navigation path if there is one.

@@ -536,7 +536,7 @@ func test_player_knockout_and_restart() -> void:
 	_check(player.collision_layer == 0, "player body out of the way")
 	await _seconds(1.0)
 	for t in _enemies():
-		_check(t.ai.target == null, "thugs stop targeting a knocked-out player")
+		_check((t.ai as ThugAI).target == null, "thugs stop targeting a knocked-out player")
 	for t in _enemies():
 		t.health.take_damage(1000.0, player)
 	await _frames(2)
