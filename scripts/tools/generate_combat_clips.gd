@@ -1,7 +1,9 @@
 extends SceneTree
 ## Generates placeholder combat clips for the humanoid character skeleton
-## (res://assets/animations/combat_placeholder.tres) until real Mixamo combat
-## clips replace them (CLAUDE.md, M2.1).
+## (res://assets/animations/combat_placeholder.tres) for moves that have no
+## real (Mixamo) clip yet: right cross, hook, bat swings, guard poses, dodge and
+## stomp. Clips that got a real clip in M4a (jab, uppercut, hit reactions,
+## knockdown, get-up) are no longer generated. See assets/animations/CLIPS.md.
 ##
 ## Run (after the model is imported):
 ##   godot --headless --script res://scripts/tools/generate_combat_clips.gd
@@ -10,8 +12,9 @@ extends SceneTree
 ## grip point and bat direction, foot positions and hip / spine / head angles.
 ## Two-bone IK turns them into bone rotations, so both hands really hold the
 ## bat. Character space here is the skeleton's: the model faces +Z; positions
-## are written as cs(right, up, forward). Key times of attack clips match the
-## clip_hit_time of the AttackData that uses them.
+## are written as cs(right, up, forward). Attack clips get animation markers
+## ([constant MARKERS]: "hit" / "hit_end" = the contact window) that combat
+## timing is read from (M4a.2), the same as the real clips' markers.
 
 const MODEL := "res://assets/models/player.fbx"
 const OUTPUT := "res://assets/animations/combat_placeholder.tres"
@@ -26,6 +29,17 @@ const FINGER_CURL := 1.2
 const THUMB_CURL := 0.5
 ## Finger joints bend around this local axis (verified on the model render).
 const FINGER_AXIS := Vector3.RIGHT
+
+## Contact window (seconds, clip time) per attack clip, matching the key poses.
+const MARKERS := {
+	"punch_cross": {"hit": 0.12, "hit_end": 0.2},
+	"punch_hook": {"hit": 0.16, "hit_end": 0.26},
+	"bat_1": {"hit": 0.18, "hit_end": 0.28},
+	"bat_2": {"hit": 0.2, "hit_end": 0.3},
+	"bat_3": {"hit": 0.26, "hit_end": 0.38},
+	"bat_heavy": {"hit": 0.55, "hit_end": 0.69},
+	"stomp": {"hit": 0.5, "hit_end": 0.6},
+}
 
 const FINGERS := ["Index", "Middle", "Ring", "Little"]
 const PHALANGES := ["Proximal", "Intermediate", "Distal"]
@@ -43,6 +57,9 @@ func _initialize() -> void:
 	_bones = _animated_bones()
 	var library := AnimationLibrary.new()
 	for clip in _clips():
+		var markers: Dictionary = MARKERS.get(clip.resource_name, {})
+		for marker: String in markers:
+			clip.add_marker(StringName(marker), markers[marker])
 		library.add_animation(clip.resource_name, clip)
 	var error := ResourceSaver.save(library, OUTPUT)
 	print("Saved %d clips to %s (error %d)" % [library.get_animation_list().size(), OUTPUT, error])
@@ -101,39 +118,7 @@ func _clips() -> Array[Animation]:
 		clips
 		. append(
 			_clip(
-				"punch_1",
-				0.42,
-				[
-					[0.0, s],
-					[
-						0.06,
-						_with(s, {"lhand": cs(-0.14, 1.4, 0.16), "spine": Vector3(0.08, 0.15, 0)})
-					],
-					[
-						0.10,
-						_with(
-							s,
-							{
-								"lhand": cs(-0.04, 1.46, 0.68),
-								"spine": Vector3(0.12, -0.4, 0),
-								"hips_rot": Vector3(0, -0.15, 0),
-							}
-						)
-					],
-					[
-						0.18,
-						_with(s, {"lhand": cs(-0.06, 1.45, 0.6), "spine": Vector3(0.1, -0.35, 0)})
-					],
-					[0.42, s],
-				]
-			)
-		)
-	)
-	(
-		clips
-		. append(
-			_clip(
-				"punch_2",
+				"punch_cross",
 				0.46,
 				[
 					[0.0, s],
@@ -166,7 +151,7 @@ func _clips() -> Array[Animation]:
 		clips
 		. append(
 			_clip(
-				"punch_3",
+				"punch_hook",
 				0.64,
 				[
 					[0.0, s],
@@ -207,55 +192,6 @@ func _clips() -> Array[Animation]:
 						)
 					],
 					[0.64, s],
-				]
-			)
-		)
-	)
-	var heavy_windup := _with(
-		s,
-		{
-			"rhand": cs(0.32, 1.05, -0.08),
-			"spine": Vector3(0.2, -0.7, 0),
-			"hips_pos": cs(0, 0.85, 0.02),
-			"hips_rot": Vector3(0, -0.25, 0),
-		}
-	)
-	(
-		clips
-		. append(
-			_clip(
-				"punch_heavy",
-				1.04,
-				[
-					[0.0, s],
-					[0.3, heavy_windup],
-					[0.38, heavy_windup],
-					[
-						0.42,
-						_with(
-							s,
-							{
-								"rhand": cs(0.0, 1.62, 0.52),
-								"rpole": dir(0.6, -1, 0),
-								"spine": Vector3(0.0, 0.5, 0),
-								"hips_pos": cs(0, 0.95, 0.12),
-								"hips_rot": Vector3(0, 0.3, 0),
-								"rfoot": cs(0.16, 0.14, -0.05),
-							}
-						)
-					],
-					[
-						0.6,
-						_with(
-							s,
-							{
-								"rhand": cs(0.0, 1.75, 0.42),
-								"spine": Vector3(-0.05, 0.45, 0),
-								"hips_pos": cs(0, 0.95, 0.12),
-							}
-						)
-					],
-					[1.04, s],
 				]
 			)
 		)
@@ -512,154 +448,44 @@ func _clips() -> Array[Animation]:
 		}
 	)
 	clips.append(_clip("dodge", 0.35, [[0.0, s], [0.08, duck], [0.22, duck], [0.35, s]]))
-	# --- Hit reactions -------------------------------------------------------------------
-	(
-		clips
-		. append(
-			_clip(
-				"flinch",
-				0.35,
-				[
-					[0.0, s],
-					[
-						0.06,
-						_with(
-							s,
-							{
-								"head": Vector3(-0.45, 0.15, 0),
-								"spine": Vector3(-0.25, 0.1, 0),
-								"lhand": cs(-0.25, 1.3, 0.12),
-								"rhand": cs(0.25, 1.28, 0.08),
-							}
-						)
-					],
-					[0.35, s],
-				]
-			)
-		)
+	# --- Stomp on a downed body (right foot) ------------------------------------------
+	var knee_up := _with(
+		s,
+		{
+			"hips_pos": cs(0, 0.95, -0.05),
+			"spine": Vector3(0.35, 0, 0),
+			"head": Vector3(0.45, 0, 0),
+			"rfoot": cs(0.14, 0.62, 0.32),
+			"knee": dir(0, 0.2, 1),
+			"lhand": cs(-0.25, 1.25, 0.15),
+			"rhand": cs(0.3, 1.2, 0.0),
+		}
 	)
-	(
-		clips
-		. append(
-			_clip(
-				"stagger",
-				0.8,
-				[
-					[0.0, s],
-					[
-						0.1,
-						_with(
-							s,
-							{
-								"spine": Vector3(-0.45, -0.2, 0.1),
-								"head": Vector3(-0.4, 0, 0),
-								"hips_pos": cs(0, 0.9, -0.12),
-								"lhand": cs(-0.45, 1.2, 0.0),
-								"rhand": cs(0.45, 1.15, 0.05),
-								"rfoot": cs(0.16, 0.14, -0.35),
-							}
-						)
-					],
-					[
-						0.35,
-						_with(
-							s,
-							{
-								"spine": Vector3(-0.25, 0.15, -0.05),
-								"head": Vector3(-0.2, 0, 0),
-								"hips_pos": cs(0, 0.9, -0.2),
-								"lhand": cs(-0.38, 1.18, 0.05),
-								"rhand": cs(0.4, 1.2, 0.05),
-								"lfoot": cs(-0.14, 0.14, -0.15),
-								"rfoot": cs(0.16, 0.14, -0.4),
-							}
-						)
-					],
-					[0.8, s],
-				]
-			)
-		)
+	var stomp_down := _with(
+		s,
+		{
+			"hips_pos": cs(0, 0.86, 0.02),
+			"spine": Vector3(0.45, 0, 0),
+			"head": Vector3(0.5, 0, 0),
+			"rfoot": cs(0.12, 0.12, 0.5),
+			"lfoot": cs(-0.14, 0.14, -0.1),
+			"knee": dir(0, 0.2, 1),
+			"lhand": cs(-0.3, 1.15, 0.1),
+			"rhand": cs(0.32, 1.1, -0.05),
+		}
 	)
-	var lying := {
-		"hips_pos": cs(0, 0.13, -0.55),
-		"hips_rot": Vector3(-1.5, 0, 0),
-		"spine": Vector3(0.1, 0, 0),
-		"head": Vector3(0.25, 0, 0),
-		"lhand": cs(-0.42, 0.08, -0.85),
-		"rhand": cs(0.42, 0.08, -0.85),
-		"lpole": dir(-1, 0.3, 0),
-		"rpole": dir(1, 0.3, 0),
-		"lfoot": cs(-0.15, 0.1, 0.32),
-		"rfoot": cs(0.17, 0.1, 0.36),
-		"knee": dir(0, 1, 0.3),
-	}
-	(
-		clips
-		. append(
-			_clip(
-				"knockdown",
-				0.5,
-				[
-					[0.0, s],
-					[
-						0.15,
-						_with(
-							s,
-							{
-								"spine": Vector3(-0.4, 0, 0),
-								"head": Vector3(-0.4, 0, 0),
-								"hips_pos": cs(0, 0.78, -0.22),
-								"hips_rot": Vector3(-0.35, 0, 0),
-								"lhand": cs(-0.45, 1.35, 0.1),
-								"rhand": cs(0.45, 1.35, 0.1),
-							}
-						)
-					],
-					[0.5, lying],
-				]
-			)
-		)
-	)
-	(
-		clips
-		. append(
-			_clip(
-				"get_up",
-				0.9,
-				[
-					[0.0, lying],
-					[
-						0.3,
-						{
-							"hips_pos": cs(0, 0.12, -0.35),
-							"hips_rot": Vector3(-0.15, 0, 0),
-							"spine": Vector3(0.25, 0, 0),
-							"head": Vector3(0.1, 0, 0),
-							"lhand": cs(-0.3, 0.1, -0.55),
-							"rhand": cs(0.3, 0.1, -0.55),
-							"lpole": dir(-0.3, 0, -1),
-							"rpole": dir(0.3, 0, -1),
-							"lfoot": cs(-0.15, 0.1, 0.32),
-							"rfoot": cs(0.17, 0.1, 0.3),
-							"knee": dir(0, 1, 0.3),
-						}
-					],
-					[
-						0.6,
-						{
-							"hips_pos": cs(0, 0.55, -0.12),
-							"hips_rot": Vector3(0.3, 0, 0),
-							"spine": Vector3(0.3, 0, 0),
-							"head": Vector3(-0.1, 0, 0),
-							"lhand": cs(-0.2, 0.62, 0.22),
-							"rhand": cs(0.2, 0.62, 0.22),
-							"lfoot": cs(-0.17, 0.14, 0.12),
-							"rfoot": cs(0.17, 0.14, 0.08),
-						}
-					],
-					[0.9, s],
-				]
-			)
+	clips.append(
+		_clip(
+			"stomp",
+			0.95,
+			[
+				[0.0, s],
+				[0.32, knee_up],
+				[0.42, knee_up],
+				[0.5, stomp_down],
+				[0.62, stomp_down],
+				[0.95, s]
+			]
 		)
 	)
 	return clips

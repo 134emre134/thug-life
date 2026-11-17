@@ -12,6 +12,34 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_left.fbx" id="57_aim_left"]
 [ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_right.fbx" id="58_aim_right"]
 [ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/fall.fbx" id="59_fall"]
+[ext_resource type="AnimationLibrary" uid="uid://dn4rx5hgh6xsb" path="res://assets/animations/mixamo/crouch_idle.fbx" id="clip_crouch_idle"]
+[ext_resource type="AnimationLibrary" uid="uid://dppet2lq3q4" path="res://assets/animations/mixamo/crouch_pose_female.fbx" id="clip_crouch_pose_female"]
+[ext_resource type="AnimationLibrary" uid="uid://pqidkovaqllw" path="res://assets/animations/mixamo/crouch_pose_male.fbx" id="clip_crouch_pose_male"]
+[ext_resource type="AnimationLibrary" uid="uid://do6g0mh7kg3kn" path="res://assets/animations/mixamo/crouch_to_stand.fbx" id="clip_crouch_to_stand"]
+[ext_resource type="AnimationLibrary" uid="uid://b4ibg7xel0uke" path="res://assets/animations/mixamo/crouch_walk.fbx" id="clip_crouch_walk"]
+[ext_resource type="AnimationLibrary" uid="uid://bwbh48vfurgwe" path="res://assets/animations/mixamo/death_fall_back.fbx" id="clip_death_fall_back"]
+[ext_resource type="AnimationLibrary" uid="uid://cndneiivtrx47" path="res://assets/animations/mixamo/door_open_inward.fbx" id="clip_door_open_inward"]
+[ext_resource type="AnimationLibrary" uid="uid://duwdndhs8sojq" path="res://assets/animations/mixamo/getup_from_back.fbx" id="clip_getup_from_back"]
+[ext_resource type="AnimationLibrary" uid="uid://db2hb56kfcm4y" path="res://assets/animations/mixamo/getup_from_front.fbx" id="clip_getup_from_front"]
+[ext_resource type="AnimationLibrary" uid="uid://c7grjtej368ng" path="res://assets/animations/mixamo/hit_react_body.fbx" id="clip_hit_react_body"]
+[ext_resource type="AnimationLibrary" uid="uid://7djk2qb0dge7" path="res://assets/animations/mixamo/hit_react_face.fbx" id="clip_hit_react_face"]
+[ext_resource type="AnimationLibrary" uid="uid://c5et0m0s6bmq1" path="res://assets/animations/mixamo/hit_react_head.fbx" id="clip_hit_react_head"]
+[ext_resource type="AnimationLibrary" uid="uid://cu37ijfmxmoy7" path="res://assets/animations/mixamo/hit_react_stomach.fbx" id="clip_hit_react_stomach"]
+[ext_resource type="AnimationLibrary" uid="uid://mc3jj2i6rwgt" path="res://assets/animations/mixamo/hit_react_uppercut.fbx" id="clip_hit_react_uppercut"]
+[ext_resource type="AnimationLibrary" uid="uid://be55pyyqdpuc4" path="res://assets/animations/mixamo/jump_drop_down.fbx" id="clip_jump_drop_down"]
+[ext_resource type="AnimationLibrary" uid="uid://05c8g5bcpv31" path="res://assets/animations/mixamo/jump_running.fbx" id="clip_jump_running"]
+[ext_resource type="AnimationLibrary" uid="uid://bauoldjnwxsrx" path="res://assets/animations/mixamo/jump_standing.fbx" id="clip_jump_standing"]
+[ext_resource type="AnimationLibrary" uid="uid://b8x10x7wkj3lb" path="res://assets/animations/mixamo/knife_idle.fbx" id="clip_knife_idle"]
+[ext_resource type="AnimationLibrary" uid="uid://bddjecth88wsm" path="res://assets/animations/mixamo/knife_stab_hook.fbx" id="clip_knife_stab_hook"]
+[ext_resource type="AnimationLibrary" uid="uid://w1d8my272mtt" path="res://assets/animations/mixamo/knife_stab_left_hand.fbx" id="clip_knife_stab_left_hand"]
+[ext_resource type="AnimationLibrary" uid="uid://bs3ig5wyai1ba" path="res://assets/animations/mixamo/knife_stab_straight.fbx" id="clip_knife_stab_straight"]
+[ext_resource type="AnimationLibrary" uid="uid://diravp5gb7n1o" path="res://assets/animations/mixamo/knockdown_fall.fbx" id="clip_knockdown_fall"]
+[ext_resource type="AnimationLibrary" uid="uid://c6mgva060xx3f" path="res://assets/animations/mixamo/punch_jab.fbx" id="clip_punch_jab"]
+[ext_resource type="AnimationLibrary" uid="uid://cxey7ifn21hyp" path="res://assets/animations/mixamo/punch_uppercut.fbx" id="clip_punch_uppercut"]
+[ext_resource type="AnimationLibrary" uid="uid://b4yhr27mbusyj" path="res://assets/animations/mixamo/sit_idle.fbx" id="clip_sit_idle"]
+[ext_resource type="AnimationLibrary" uid="uid://glwyc55sojc5" path="res://assets/animations/mixamo/stand_to_crouch.fbx" id="clip_stand_to_crouch"]
+[ext_resource type="AnimationLibrary" uid="uid://brylm5tj55wfc" path="res://assets/animations/mixamo/turn_around.fbx" id="clip_turn_around"]
+[ext_resource type="AnimationLibrary" uid="uid://d1p4beq3go7i1" path="res://assets/animations/mixamo/weapon_2h_idle.fbx" id="clip_weapon_2h_idle"]
 [ext_resource type="AnimationNodeBlendTree" path="res://assets/animations/humanoid_tree.tres" id="3_humanoid_tree"]
 [ext_resource type="Script" path="res://scripts/npc/npc_character.gd" id="10_npc_character"]
 [ext_resource type="Script" path="res://scripts/player/player_movement.gd" id="12_movement"]
@@ -81,6 +109,34 @@ libraries = {
 &"aim_left": ExtResource("57_aim_left"),
 &"aim_right": ExtResource("58_aim_right"),
 &"fall": ExtResource("59_fall"),
+&"crouch_idle": ExtResource("clip_crouch_idle"),
+&"crouch_pose_female": ExtResource("clip_crouch_pose_female"),
+&"crouch_pose_male": ExtResource("clip_crouch_pose_male"),
+&"crouch_to_stand": ExtResource("clip_crouch_to_stand"),
+&"crouch_walk": ExtResource("clip_crouch_walk"),
+&"death_fall_back": ExtResource("clip_death_fall_back"),
+&"door_open_inward": ExtResource("clip_door_open_inward"),
+&"getup_from_back": ExtResource("clip_getup_from_back"),
+&"getup_from_front": ExtResource("clip_getup_from_front"),
+&"hit_react_body": ExtResource("clip_hit_react_body"),
+&"hit_react_face": ExtResource("clip_hit_react_face"),
+&"hit_react_head": ExtResource("clip_hit_react_head"),
+&"hit_react_stomach": ExtResource("clip_hit_react_stomach"),
+&"hit_react_uppercut": ExtResource("clip_hit_react_uppercut"),
+&"jump_drop_down": ExtResource("clip_jump_drop_down"),
+&"jump_running": ExtResource("clip_jump_running"),
+&"jump_standing": ExtResource("clip_jump_standing"),
+&"knife_idle": ExtResource("clip_knife_idle"),
+&"knife_stab_hook": ExtResource("clip_knife_stab_hook"),
+&"knife_stab_left_hand": ExtResource("clip_knife_stab_left_hand"),
+&"knife_stab_straight": ExtResource("clip_knife_stab_straight"),
+&"knockdown_fall": ExtResource("clip_knockdown_fall"),
+&"punch_jab": ExtResource("clip_punch_jab"),
+&"punch_uppercut": ExtResource("clip_punch_uppercut"),
+&"sit_idle": ExtResource("clip_sit_idle"),
+&"stand_to_crouch": ExtResource("clip_stand_to_crouch"),
+&"turn_around": ExtResource("clip_turn_around"),
+&"weapon_2h_idle": ExtResource("clip_weapon_2h_idle"),
 &"combat": ExtResource("41_combat")
 }
 tree_root = ExtResource("3_humanoid_tree")
@@ -106,7 +162,7 @@ body = NodePath("..")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_hurtbox")
 
-[node name="Combat" type="Node" parent="." node_paths=PackedStringArray("body", "model", "health", "hitbox", "hurtbox", "weapon_socket")]
+[node name="Combat" type="Node" parent="." node_paths=PackedStringArray("body", "model", "health", "hitbox", "hurtbox", "weapon_socket", "ragdoll")]
 script = ExtResource("17_melee_combat")
 body = NodePath("..")
 model = NodePath("../Model")
@@ -116,6 +172,7 @@ hurtbox = NodePath("../Hurtbox")
 weapon_socket = NodePath("../Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
 team = &"thugs"
 unarmed = ExtResource("18_thug_fists")
+ragdoll = NodePath("../Ragdoll")
 track_target_in_windup = false
 dodge_clip = &"dodge"
 

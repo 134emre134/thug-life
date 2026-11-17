@@ -1,0 +1,21 @@
+{
+	"punch_jab": {"trim": [0.2, 1.03], "markers": {"hit": 0.52, "hit_end": 0.66, "end": 0.95}},
+	"punch_uppercut": {"trim": [0.1, 1.33], "markers": {"hit": 0.47, "hit_end": 0.58, "end": 1.2}},
+	"knife_stab_straight": {"trim": [0.15, 2.13], "markers": {"hit": 0.42, "hit_end": 0.55, "end": 1.15}},
+	"knife_stab_hook": {"trim": [0.25, 2.63], "markers": {"hit": 0.85, "hit_end": 0.98, "end": 1.8}},
+	"knife_stab_left_hand": {"markers": {"hit": 0.67, "hit_end": 0.8, "end": 1.75}},
+	"hit_react_face": {"markers": {"recover": 0.8}},
+	"hit_react_body": {"markers": {"recover": 0.9}},
+	"hit_react_stomach": {"markers": {"recover": 0.95}},
+	"hit_react_uppercut": {"markers": {"recover": 1.3}},
+	"hit_react_head": {"trim": [0.0, 2.0], "markers": {"recover": 1.2}},
+	"knockdown_fall": {"trim": [0.0, 1.7], "markers": {"down": 0.93}},
+	"getup_from_back": {"trim": [2.15, 6.2]},
+	"getup_from_front": {"trim": [0.9, 6.4]},
+	"stand_to_crouch": {"trim": [0.1, 0.63]},
+	"crouch_to_stand": {"trim": [0.35, 1.55]},
+	"jump_standing": {"segments": {"air": [0.5, 1.07], "land": [1.07, 1.65]}},
+	"jump_running": {"segments": {"air": [0.03, 0.6], "land": [0.6, 0.87]}},
+	"jump_drop_down": {"segments": {"air": [0.97, 1.35], "land": [1.33, 2.1]}},
+	"death_fall_back": {"markers": {"down": 1.6}}
+}
