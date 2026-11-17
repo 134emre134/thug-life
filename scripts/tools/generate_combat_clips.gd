@@ -819,10 +819,10 @@ func _two_bone(
 	local: Dictionary,
 	global: Dictionary
 ) -> void:
-	var root: Vector3 = global[upper].origin
+	var start: Vector3 = global[upper].origin
 	var upper_length := _rest_local(lower).origin.length()
 	var lower_length := _rest_local(end).origin.length()
-	var to_target := target - root
+	var to_target := target - start
 	var distance := clampf(
 		to_target.length(),
 		absf(upper_length - lower_length) + 0.01,
@@ -838,9 +838,9 @@ func _two_bone(
 		/ (2.0 * upper_length * distance)
 	)
 	var angle := acos(clampf(cos_a, -1.0, 1.0))
-	var elbow := root + (direction * cos(angle) + bend * sin(angle)) * upper_length
-	var reach := root + direction * distance
-	_aim_bone(upper, elbow - root, local, global)
+	var elbow := start + (direction * cos(angle) + bend * sin(angle)) * upper_length
+	var reach := start + direction * distance
+	_aim_bone(upper, elbow - start, local, global)
 	_aim_bone(lower, reach - elbow, local, global)
 
 

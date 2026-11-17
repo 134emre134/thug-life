@@ -69,13 +69,13 @@ func _update_blocked_marker() -> void:
 func _update_target_marker() -> void:
 	var target := player.combat.current_target
 	var camera := player.camera_rig.camera
-	var show := target != null and not player.combat.is_knocked_out()
+	var marker_visible := target != null and not player.combat.is_knocked_out()
 	var point := Vector3.ZERO
-	if show:
+	if marker_visible:
 		point = target.body.global_position + Vector3.UP * 2.1
-		show = not camera.is_position_behind(point)
-	_target_marker.visible = show
-	if show:
+		marker_visible = not camera.is_position_behind(point)
+	_target_marker.visible = marker_visible
+	if marker_visible:
 		_target_marker.position = camera.unproject_position(point) - _target_marker.size * 0.5
 
 
@@ -135,9 +135,9 @@ func _combat_debug_lines() -> PackedStringArray:
 			"--- Combat ---",
 			"Health: %d / %d" % [ceili(player.health.health), ceili(player.health.max_health)],
 			"State: %s  Phase: %s" % [c.get_state_name(), c.get_phase_name()],
-			"Attack: %s  Combo: %d" % [c.attack.id if c.attack else "-", c.combo_index + 1],
+			"Attack: %s  Combo: %d" % [String(c.attack.id) if c.attack else "-", c.combo_index + 1],
 			"Weapon: %s" % c.get_weapon().display_name,
-			"Target: %s" % (c.current_target.body.name if c.current_target else "-"),
+			"Target: %s" % (String(c.current_target.body.name) if c.current_target else "-"),
 			"Clip: %s" % player.animator.combat_clip,
 			"Hit stop: %s  Shake: %.2f" % [HitStop.is_active(), player.camera_rig.get_trauma()],
 		]

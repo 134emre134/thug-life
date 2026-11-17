@@ -450,12 +450,17 @@ func test_ai_one_vs_three() -> void:
 	var attackers := {}
 	var windups: Array[float] = []
 	var windup_start := {}
+	var min_windup := INF
+	for attack: AttackData in [THUG_JAB, THUG_HEAVY, preload("res://data/attacks/thug_hook.tres")]:
+		min_windup = minf(min_windup, attack.windup)
 	var closest := {}
 	for thug in thugs:
 		thug.combat.phase_changed.connect(
 			func(p: int) -> void:
 				if p == MeleeCombat.Phase.WINDUP:
-					windup_start[thug] = Time.get_ticks_msec()
+					windup_start[thug] = Engine.get_physics_frames()
+				elif p == MeleeCombat.Phase.ACTIVE and windup_start.has(thug):
+					windups.append((Engine.get_physics_frames() - windup_start[thug]) / 60.0)
 		)
 		thug.combat.attack_started.connect(func(_a: AttackData) -> void: attackers[thug] = true)
 		closest[thug] = INF
@@ -478,6 +483,15 @@ func test_ai_one_vs_three() -> void:
 	_check(attackers.size() >= 2, "several thugs took turns (%d)" % attackers.size())
 	_check(player.health.health < player.health.max_health, "thugs landed hits")
 	_check(telegraphed, "every windup is telegraphed (red overlay)")
+	_check(not windups.is_empty(), "thug windups measured (%d)" % windups.size())
+	var shortest: float = windups.min() if not windups.is_empty() else 0.0
+	_check(
+		shortest >= min_windup - 1.0 / 60.0,
+		(
+			"every attack can be seen coming: shortest windup %.2f s (min %.2f)"
+			% [shortest, min_windup]
+		)
+	)
 	for thug in thugs:
 		_check(closest[thug] < 2.0, "%s reached the player (%.1f m)" % [thug.name, closest[thug]])
 	# Knock them all out: tokens are returned, nobody attacks.
