@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/m4b_tests.gd" id="1_m4b_tests"]
+
+[node name="M4bTests" type="Node"]
+script = ExtResource("1_m4b_tests")
