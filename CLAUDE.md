@@ -21,7 +21,7 @@ Never treat an [Open] item as decided. If a task needs one, ask instead of inven
 | M0 | Setup and folder structure | done |
 | M1 | Character skeleton (GDD §19, M1.1–M1.7) | implemented, needs playtest and tuning in the editor |
 | M2 | Melee combat (GDD §7, §19 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | implemented; Mixamo model + locomotion in, combat clips are generated placeholders until Mixamo combat clips arrive; needs playtest/tuning |
-| M3a | Inventory, loot and lethality (GDD §7, §12, §13, §19 M3a): slot inventory, wallet, looting, death, knife, HUD | implemented on top of the M2 branch (merged with the Mixamo update); needs playtest/tuning |
+| M3a | Inventory, loot and lethality (GDD §7, §12, §13, §19 M3a): slot inventory, wallet, looting, death, knife, HUD | implemented; needs playtest/tuning |
 | — | **Gate:** define the Core Loop (GDD §5) before M3b | |
 | M3b | District and first crime (pickpocket → witness → report → heat 1, minimap) | |
 | M4 | Firearms | |

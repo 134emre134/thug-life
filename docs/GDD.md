@@ -332,7 +332,7 @@ Built and tested in the combat arena; moves into the district with M3b.
 
 #### M3a implementation notes [Proposal: awaiting playtest]
 
-Built on top of the M2 branch (PR #5, not merged yet). What was built, and where it deviates from the table above. All numbers are starting values in `.tres`/`@export`s, to be tuned in playtest.
+What was built, and where it deviates from the table above. All numbers are starting values in `.tres`/`@export`s, to be tuned in playtest.
 
 - **Inventory (M3a.1):** `InventoryComponent` on player and NPCs: melee slot, firearm slot (present but locked until M4), 4 pocket slots, wallet. The inventory owns weapons; `MeleeCombat` only fights with what is put in hand. The melee weapon is **drawn** (in hand) or **holstered** (carried, fists in use). Picking up a weapon while carrying one drops the old one (swap). Weapons only go in the melee slot, everything else in pockets. **Added bindings:** H = holster/draw, Tab = inventory overlay. G still drops (also a holstered weapon).
 - **Loot tables (M3a.2):** `LootTable` (cash range, cash chance, entries with a chance each, optional item cap) rolled into the NPC's inventory on spawn. Two types: **thug** ($5–30, lighter 60%, phone 30%) and **collector** (a loan shark's debt collector: $80–160, collection ledger 100%, wristwatch 70%, phone 50%, 120 HP, blue tint). The 1 vs 3 fight is two thugs and a collector.
