@@ -22,10 +22,12 @@ Never treat an [Open] item as decided. If a task needs one, ask instead of inven
 | M1 | Character skeleton (GDD §19, M1.1–M1.7) | implemented, needs playtest and tuning in the editor |
 | M2 | Melee combat (GDD §7, §19 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | implemented; Mixamo model + locomotion in, combat clips are generated placeholders until Mixamo combat clips arrive; needs playtest/tuning |
 | M3a | Inventory, loot and lethality (GDD §7, §12, §13, §19 M3a): slot inventory, wallet, looting, death, knife, HUD | implemented; needs playtest/tuning |
-| — | **Gate:** define the Core Loop (GDD §5) before M3b | |
-| M3b | District and first crime (pickpocket → witness → report → heat 1, minimap) | |
-| M4 | Firearms | |
-| M5 | First progression loop (shop robbery, shops, interiors, `WorldClock`) | |
+| M3b | District (GDD §19 M3b): gray-box Brickhaven, district gym, civilians that panic and can be fought/looted, thug spawns, basic minimap; no police, crime or cars | |
+| M4a | Combat update (GDD §7, §19 M4a): animation pass, clip-driven attack timing, feel tuning, crouch, stomp, inventory pauses the game | |
+| M4b | Firearms (GDD §7, §19 M4b): one firearm, ammo, weapon switching, sticky cover, ranged enemy | |
+| — | **Gate:** define the Core Loop (GDD §5) before M5a | |
+| M5a | Crime fundamentals (GDD §8, §19 M5a): pickpocket → witness → report → heat 1, police patrol, arrest, firearm use → heat | |
+| M5b | First progression loop (shop robbery, shops, interiors, `WorldClock`, heat 2, first rank-up) | |
 | M6 | Nightlife (day/night cycle, fight club) | |
 | M7–M9 | Customization, second district + cars, vehicle roster (GDD §17, §18) | |
 
@@ -35,7 +37,7 @@ Each milestone is built on its own branch and merged by PR. A task is done when 
 
 - Main scene: `res://scenes/levels/combat_gym.tscn` (M2.8 combat arena, extended in M3a: mixed NPC types with loot, bats and a knife). The M1 gym `res://scenes/levels/test_gym.tscn` still works (open it and press F6).
 - Controls (all bound in the InputMap, `project.godot` `[input]`): WASD move · Shift sprint · Ctrl walk · Space jump · LMB attack (tap = light, hold 0.28 s = heavy) · MMB heavy · RMB guard · Space while guarding = dodge · E interact / pick up (hold E: search a body) · G drop weapon · H holster/draw weapon · Tab inventory overlay · Q swap shoulder · F3 debug overlay (also floating labels on NPCs) · F4 play the next combat clip (debug) · F5 restart fight · F6 next fight mode (1 vs 3 → 1 vs 1 → training dummy) · Esc release mouse.
-- RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4). `PlayerAim` is kept intact (it is updated with `wants_aim = false`); it is needed again in M4. The M2 bindings and their deviations from the proposal are in GDD §19, "M2 implementation notes".
+- RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4b). `PlayerAim` is kept intact (it is updated with `wants_aim = false`); it is needed again in M4b. The M2 bindings and their deviations from the proposal are in GDD §19, "M2 implementation notes".
 - Headless checks (CI or a cloud container):
   ```bash
   godot --headless --import            # (re)generate .godot/ cache and .uid files
@@ -87,9 +89,9 @@ Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `I
 7. **Signals up, calls down.** A parent calls methods on its children. Children report back through signals. `Events` (autoload, `scripts/autoload/events.gd`) is reserved for cross-cutting fire-and-forget events (UI notifications, later crime events).
 8. System names from the GDD:
    - **M2 (melee, implemented):** `HealthComponent`, `HitboxComponent` (attacker's damaging volume), `HurtboxComponent` (where a character can be hit), `MeleeCombat`, `SoftTargeting`, `CombatDirector` (attack tokens), `RagdollComponent`, `ModelFlash`, `CombatAudio`, `HitStop`; NPC side `NpcCharacter` (thin body) + `ThugAI` (controller). Resources `AttackData` (`data/attacks/*.tres`) and `WeaponData` (extends `ItemData`, `data/items/`). `MeleeCombat` takes a `MeleeCombat.Intent` each tick, like `PlayerMovement`, and changes movement only by editing the movement intent in `apply_to_movement()` (lock, lunge/dodge velocity override, guard strafing). Animation requests go up as `clip_requested` / `clip_stopped` signals; the character root connects them to its `PlayerAnimator`.
-   - **M3a (inventory/loot, implemented):** `InventoryComponent` (melee slot drawn/holstered, firearm slot locked until M4, pocket slots, wallet; owns weapons and drops them: `MeleeCombat` only holds what `set_weapon()` puts in hand), `LootTable` + `LootEntry` (`data/loot/*.tres`, rolled into an NPC's inventory on spawn), `BodySearch` (hold-to-search `Interactable` on a downed body, emits `looted(victim, by)`). `HealthComponent` states `ACTIVE` → `KNOCKED_OUT` → `DEAD` with downed damage and a knockout recovery timer; `AttackData.damage_type` (blunt knocks out, blade/firearm kill). `Interactable.hold_time` + `InteractionComponent.update_hold()` for held interactions. Pickups hand items over through a duck-typed `receive_item(item) -> bool`; searches find the interactor's inventory through `get_inventory()`. NPC types are scene variants for now (`scenes/npc/collector.tscn` inherits `thug.tscn`), each with its own `LootTable`.
-   - **M3b (crime):** `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
-9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals: `MeleeCombat.hit_landed(attacker, victim, attack)` and `HealthComponent.knocked_out(victim, by)` / `killed(victim, by)`, and `BodySearch.looted(victim, by)`. Every `MeleeCombat` is in the `combatants` group, so the M3b `CrimeManager` can find and connect to all of them; no crime or heat code goes into combat components.
+   - **M3a (inventory/loot, implemented):** `InventoryComponent` (melee slot drawn/holstered, firearm slot locked until M4b, pocket slots, wallet; owns weapons and drops them: `MeleeCombat` only holds what `set_weapon()` puts in hand), `LootTable` + `LootEntry` (`data/loot/*.tres`, rolled into an NPC's inventory on spawn), `BodySearch` (hold-to-search `Interactable` on a downed body, emits `looted(victim, by)`). `HealthComponent` states `ACTIVE` → `KNOCKED_OUT` → `DEAD` with downed damage and a knockout recovery timer; `AttackData.damage_type` (blunt knocks out, blade/firearm kill). `Interactable.hold_time` + `InteractionComponent.update_hold()` for held interactions. Pickups hand items over through a duck-typed `receive_item(item) -> bool`; searches find the interactor's inventory through `get_inventory()`. NPC types are scene variants for now (`scenes/npc/collector.tscn` inherits `thug.tscn`), each with its own `LootTable`.
+   - **M5a (crime):** `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
+9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals: `MeleeCombat.hit_landed(attacker, victim, attack)` and `HealthComponent.knocked_out(victim, by)` / `killed(victim, by)`, and `BodySearch.looted(victim, by)`. Every `MeleeCombat` is in the `combatants` group, so the M5a `CrimeManager` can find and connect to all of them; no crime or heat code goes into combat components.
 
 ### Physics layers (`project.godot` `[layer_names]`)
 
