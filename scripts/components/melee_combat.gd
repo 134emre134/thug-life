@@ -170,8 +170,9 @@ class Intent:
 ## Used instead of [member get_up_clip] when a ragdoll lies face down.
 @export var get_up_front_clip: StringName = &"getup_from_front"
 @export var get_up_speed: float = 1.8
-## No hits land while knocked down or getting up (no juggling a downed enemy).
-@export var invulnerable_when_down: bool = true
+## When true, no hits land while knocked down or getting up. Off by design
+## (GDD §7): hits during a knockdown deal damage but start no new reaction.
+@export var invulnerable_when_down: bool = false
 ## Used only when a reaction clip is missing from the animation tree.
 @export var fallback_reaction_time: float = 0.5
 
