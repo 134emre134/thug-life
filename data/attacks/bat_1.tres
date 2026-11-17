@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="1_attack_data"]
+
+[resource]
+script = ExtResource("1_attack_data")
+id = &"bat_1"
+clip = &"bat_1"
+clip_hit_time = 0.18
+windup = 0.18
+active = 0.1
+recovery = 0.32
+damage = 14
+reaction = 1
+breaks_guard = false
+knockback = 160
+knockback_lift = 0
+reach = 1.25
+hit_radius = 0.55
+hit_height = 1.2
+lunge_distance = 1.8
+step_distance = 0.3
+hit_stop = 0.06
+camera_shake = 0.25

@@ -25,6 +25,18 @@ font_color = Color(1, 0.25, 0.2, 1)
 outline_size = 4
 outline_color = Color(0, 0, 0, 0.9)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
+bg_color = Color(0, 0, 0, 0.55)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
+bg_color = Color(0.85, 0.2, 0.18, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_target"]
+font_size = 22
+font_color = Color(1, 0.85, 0.3, 1)
+outline_size = 5
+outline_color = Color(0, 0, 0, 0.9)
+
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("5_hud")
 
@@ -85,7 +97,7 @@ layout_mode = 3
 offset_left = 12
 offset_top = 12
 offset_right = 412
-offset_bottom = 252
+offset_bottom = 452
 mouse_filter = 2
 label_settings = SubResource("LabelSettings_debug")
 
@@ -97,7 +109,7 @@ anchor_top = 1
 anchor_right = 1
 anchor_bottom = 1
 offset_left = -330
-offset_top = -150
+offset_top = -190
 offset_right = -12
 offset_bottom = -12
 grow_horizontal = 0
@@ -107,5 +119,42 @@ label_settings = SubResource("LabelSettings_debug")
 horizontal_alignment = 2
 vertical_alignment = 2
 text = "WASD move · Shift sprint · Ctrl walk · Space jump
-RMB aim · Q swap shoulder · E interact
-F3 debug · Esc release mouse"
+LMB attack (hold: heavy) · MMB heavy · RMB guard
+Space while guarding: dodge · E pick up · G drop
+Q swap shoulder · F3 debug · F4 play clips
+F5 restart fight · F6 next mode · Esc release mouse"
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1
+anchor_bottom = 1
+offset_left = 24
+offset_top = -52
+offset_right = 324
+offset_bottom = -30
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
+max_value = 150.0
+value = 150.0
+show_percentage = false
+
+[node name="Weapon" type="Label" parent="HealthBar"]
+layout_mode = 0
+offset_top = -30
+offset_right = 300
+offset_bottom = -4
+text = "Fists"
+label_settings = SubResource("LabelSettings_debug")
+
+[node name="TargetMarker" type="Label" parent="."]
+layout_mode = 3
+offset_right = 24
+offset_bottom = 24
+mouse_filter = 2
+text = "v"
+label_settings = SubResource("LabelSettings_target")
+horizontal_alignment = 1
+vertical_alignment = 1

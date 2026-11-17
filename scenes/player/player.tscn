@@ -1,90 +1,33 @@
 [gd_scene format=3]
 
-[ext_resource type="AnimationLibrary" path="res://assets/animations/mannequin_placeholder.tres" id="1_mannequin_placeholder"]
+[ext_resource type="PackedScene" path="res://assets/models/player.fbx" id="40_character"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/combat_placeholder.tres" id="41_combat"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/idle.fbx" id="50_idle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/walk.fbx" id="51_walk"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/run.fbx" id="52_run"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/sprint.fbx" id="53_sprint"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_idle.fbx" id="54_aim_idle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_forward.fbx" id="55_aim_forward"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_backward.fbx" id="56_aim_backward"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_left.fbx" id="57_aim_left"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_right.fbx" id="58_aim_right"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/fall.fbx" id="59_fall"]
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="20_player"]
-[ext_resource type="PackedScene" path="res://scenes/player/mannequin.tscn" id="21_mannequin"]
 [ext_resource type="Script" path="res://scripts/player/player_movement.gd" id="22_player_movement"]
 [ext_resource type="Script" path="res://scripts/player/player_aim.gd" id="23_player_aim"]
 [ext_resource type="Script" path="res://scripts/components/interaction_component.gd" id="24_interaction_component"]
 [ext_resource type="Script" path="res://scripts/player/player_animator.gd" id="25_player_animator"]
 [ext_resource type="Script" path="res://scripts/camera/camera_rig.gd" id="26_camera_rig"]
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_idle"]
-animation = &"idle"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_walk"]
-animation = &"walk"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_run"]
-animation = &"run"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_sprint"]
-animation = &"sprint"
-
-[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_locomotion"]
-blend_point_0/node = SubResource("AnimationNodeAnimation_idle")
-blend_point_0/pos = 0
-blend_point_1/node = SubResource("AnimationNodeAnimation_walk")
-blend_point_1/pos = 2
-blend_point_2/node = SubResource("AnimationNodeAnimation_run")
-blend_point_2/pos = 4.5
-blend_point_3/node = SubResource("AnimationNodeAnimation_sprint")
-blend_point_3/pos = 7
-min_space = 0
-max_space = 8
-value_label = "speed (m/s)"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_idle"]
-animation = &"aim_idle"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_forward"]
-animation = &"aim_forward"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_backward"]
-animation = &"aim_backward"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_right"]
-animation = &"aim_right"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_aim_left"]
-animation = &"aim_left"
-
-[sub_resource type="AnimationNodeBlendSpace2D" id="AnimationNodeBlendSpace2D_strafe"]
-blend_point_0/node = SubResource("AnimationNodeAnimation_aim_idle")
-blend_point_0/pos = Vector2(0, 0)
-blend_point_1/node = SubResource("AnimationNodeAnimation_aim_forward")
-blend_point_1/pos = Vector2(0, 2.5)
-blend_point_2/node = SubResource("AnimationNodeAnimation_aim_backward")
-blend_point_2/pos = Vector2(0, -2.5)
-blend_point_3/node = SubResource("AnimationNodeAnimation_aim_right")
-blend_point_3/pos = Vector2(2.5, 0)
-blend_point_4/node = SubResource("AnimationNodeAnimation_aim_left")
-blend_point_4/pos = Vector2(-2.5, 0)
-min_space = Vector2(-3, -3)
-max_space = Vector2(3, 3)
-x_label = "right (m/s)"
-y_label = "forward (m/s)"
-
-[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_aim_blend"]
-
-[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_air_blend"]
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_fall"]
-animation = &"fall"
-
-[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_root"]
-nodes/locomotion/node = SubResource("AnimationNodeBlendSpace1D_locomotion")
-nodes/locomotion/position = Vector2(-400, 0)
-nodes/strafe/node = SubResource("AnimationNodeBlendSpace2D_strafe")
-nodes/strafe/position = Vector2(-400, 200)
-nodes/aim_blend/node = SubResource("AnimationNodeBlend2_aim_blend")
-nodes/aim_blend/position = Vector2(-150, 60)
-nodes/fall/node = SubResource("AnimationNodeAnimation_fall")
-nodes/fall/position = Vector2(-150, 260)
-nodes/air_blend/node = SubResource("AnimationNodeBlend2_air_blend")
-nodes/air_blend/position = Vector2(100, 60)
-nodes/output/position = Vector2(340, 60)
-node_connections = [&"aim_blend", 0, &"locomotion", &"aim_blend", 1, &"strafe", &"air_blend", 0, &"aim_blend", &"air_blend", 1, &"fall", &"output", 0, &"air_blend"]
+[ext_resource type="AnimationNodeBlendTree" path="res://assets/animations/humanoid_tree.tres" id="3_humanoid_tree"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="27_health"]
+[ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="28_hurtbox"]
+[ext_resource type="Script" path="res://scripts/components/hitbox_component.gd" id="29_hitbox"]
+[ext_resource type="Script" path="res://scripts/components/soft_targeting.gd" id="30_soft_targeting"]
+[ext_resource type="Script" path="res://scripts/components/melee_combat.gd" id="31_melee_combat"]
+[ext_resource type="Resource" path="res://data/items/fists.tres" id="32_fists"]
+[ext_resource type="Script" path="res://scripts/components/ragdoll_component.gd" id="33_ragdoll"]
+[ext_resource type="Script" path="res://scripts/components/model_flash.gd" id="34_model_flash"]
+[ext_resource type="Script" path="res://scripts/components/combat_audio.gd" id="35_combat_audio"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -95,6 +38,10 @@ radius = 1.8
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_arm"]
 radius = 0.2
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hurtbox"]
+radius = 0.4
+height = 1.8
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
@@ -107,14 +54,36 @@ shape = SubResource("CapsuleShape3D_body")
 
 [node name="Model" type="Node3D" parent="."]
 
-[node name="Mannequin" parent="Model" instance=ExtResource("21_mannequin")]
+[node name="Character" parent="Model" instance=ExtResource("40_character")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="RightHandAttachment" type="BoneAttachment3D" parent="Model/Character/GeneralSkeleton"]
+bone_name = "RightHand"
+
+[node name="Grip" type="Node3D" parent="Model/Character/GeneralSkeleton/RightHandAttachment"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.15, 0.08, 0.03)
+
+[node name="Hitbox" type="Area3D" parent="Model"]
+script = ExtResource("29_hitbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Hitbox"]
 
 [node name="AnimationTree" type="AnimationTree" parent="."]
-root_node = NodePath("../Model/Mannequin")
+root_node = NodePath("../Model/Character")
 libraries = {
-&"": ExtResource("1_mannequin_placeholder")
+&"idle": ExtResource("50_idle"),
+&"walk": ExtResource("51_walk"),
+&"run": ExtResource("52_run"),
+&"sprint": ExtResource("53_sprint"),
+&"aim_idle": ExtResource("54_aim_idle"),
+&"aim_forward": ExtResource("55_aim_forward"),
+&"aim_backward": ExtResource("56_aim_backward"),
+&"aim_left": ExtResource("57_aim_left"),
+&"aim_right": ExtResource("58_aim_right"),
+&"fall": ExtResource("59_fall"),
+&"combat": ExtResource("41_combat")
 }
-tree_root = SubResource("AnimationNodeBlendTree_root")
+tree_root = ExtResource("3_humanoid_tree")
 parameters/locomotion/blend_position = 0
 parameters/strafe/blend_position = Vector2(0, 0)
 parameters/aim_blend/blend_amount = 0
@@ -134,6 +103,48 @@ script = ExtResource("24_interaction_component")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Interaction"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("SphereShape3D_reach")
+
+[node name="Health" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("27_health")
+max_health = 150.0
+body = NodePath("..")
+
+[node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health", "body")]
+script = ExtResource("28_hurtbox")
+health = NodePath("../Health")
+body = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_hurtbox")
+
+[node name="Targeting" type="Node" parent="."]
+script = ExtResource("30_soft_targeting")
+
+[node name="Combat" type="Node" parent="." node_paths=PackedStringArray("body", "model", "health", "hitbox", "hurtbox", "targeting", "weapon_socket")]
+script = ExtResource("31_melee_combat")
+body = NodePath("..")
+model = NodePath("../Model")
+health = NodePath("../Health")
+hitbox = NodePath("../Model/Hitbox")
+hurtbox = NodePath("../Hurtbox")
+targeting = NodePath("../Targeting")
+weapon_socket = NodePath("../Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
+team = &"player"
+unarmed = ExtResource("32_fists")
+
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("skeleton")]
+script = ExtResource("33_ragdoll")
+skeleton = NodePath("../Model/Character/GeneralSkeleton")
+
+[node name="Flash" type="Node" parent="." node_paths=PackedStringArray("model")]
+script = ExtResource("34_model_flash")
+model = NodePath("../Model")
+
+[node name="CombatAudio" type="AudioStreamPlayer3D" parent="." node_paths=PackedStringArray("combat")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+script = ExtResource("35_combat_audio")
+combat = NodePath("../Combat")
 
 [node name="Animator" type="Node" parent="." node_paths=PackedStringArray("animation_tree", "body", "model")]
 script = ExtResource("25_player_animator")

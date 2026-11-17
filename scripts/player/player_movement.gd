@@ -21,6 +21,10 @@ class Intent:
 	## Strafe mode (aiming): face [member face_yaw] instead of the move direction.
 	var strafe := false
 	var face_yaw := 0.0
+	## Drive the horizontal velocity directly (lunges, dodges) instead of
+	## accelerating toward [member move_direction].
+	var use_velocity_override := false
+	var velocity_override := Vector3.ZERO
 
 
 @export var body: CharacterBody3D
@@ -154,6 +158,12 @@ func _apply_gravity(velocity: Vector3, delta: float, on_floor: bool) -> Vector3:
 
 
 func _apply_horizontal(velocity: Vector3, delta: float, intent: Intent, on_floor: bool) -> Vector3:
+	if intent.use_velocity_override:
+		gait = Gait.IDLE if intent.velocity_override.length_squared() < 0.01 else Gait.RUN
+		velocity.x = intent.velocity_override.x
+		velocity.z = intent.velocity_override.z
+		return velocity
+
 	var input_strength := clampf(intent.move_direction.length(), 0.0, 1.0)
 	var direction := intent.move_direction.normalized() if input_strength > 0.01 else Vector3.ZERO
 

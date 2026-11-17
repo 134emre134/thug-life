@@ -1,0 +1,246 @@
+[gd_scene format=3]
+
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_floor.tres" id="1_floor"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_wall.tres" id="2_wall"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_cover.tres" id="3_cover"]
+[ext_resource type="ShaderMaterial" path="res://assets/materials/graybox_accent.tres" id="4_accent"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="5_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="6_hud"]
+[ext_resource type="PackedScene" path="res://scenes/npc/thug.tscn" id="7_thug"]
+[ext_resource type="PackedScene" path="res://scenes/props/crate.tscn" id="8_crate"]
+[ext_resource type="PackedScene" path="res://scenes/props/barrel.tscn" id="9_barrel"]
+[ext_resource type="PackedScene" path="res://scenes/props/heavy_crate.tscn" id="10_heavy_crate"]
+[ext_resource type="Resource" path="res://data/items/bat.tres" id="11_bat"]
+[ext_resource type="Script" path="res://scripts/levels/combat_gym.gd" id="20_combat_gym"]
+[ext_resource type="Script" path="res://scripts/levels/enemy_spawner.gd" id="21_enemy_spawner"]
+[ext_resource type="Script" path="res://scripts/npc/combat_director.gd" id="22_combat_director"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
+sky_top_color = Color(0.38, 0.52, 0.72, 1)
+sky_horizon_color = Color(0.7, 0.72, 0.76, 1)
+ground_bottom_color = Color(0.2, 0.2, 0.22, 1)
+ground_horizon_color = Color(0.7, 0.72, 0.76, 1)
+
+[sub_resource type="Sky" id="Sky_sky"]
+sky_material = SubResource("ProceduralSkyMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_env"]
+background_mode = 2
+sky = SubResource("Sky_sky")
+ambient_light_source = 3
+reflected_light_source = 2
+tonemap_mode = 2
+ssao_enabled = true
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_arena"]
+geometry_parsed_geometry_type = 1
+geometry_collision_mask = 1
+cell_size = 0.25
+cell_height = 0.25
+agent_height = 1.75
+agent_radius = 0.5
+agent_max_climb = 0.25
+
+[node name="CombatGym" type="Node3D"]
+script = ExtResource("20_combat_gym")
+bat_weapon = ExtResource("11_bat")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.81915, 0.46985, -0.32899, 0, 0.57358, 0.81915, 0.57358, -0.67101, 0.46985, 0, 20, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 80
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_arena")
+
+[node name="Geometry" type="Node3D" parent="NavigationRegion3D"]
+
+[node name="Floor" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(44, 1, 44)
+material = ExtResource("1_floor")
+
+[node name="WallN" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -22.5)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(46, 4, 1)
+material = ExtResource("2_wall")
+
+[node name="WallS" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 22.5)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(46, 4, 1)
+material = ExtResource("2_wall")
+
+[node name="WallE" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 2, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 4, 44)
+material = ExtResource("2_wall")
+
+[node name="WallW" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.5, 2, 0)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 4, 44)
+material = ExtResource("2_wall")
+
+[node name="AlleyWallW" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.3, 1.75, -2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 3.5, 18)
+material = ExtResource("2_wall")
+
+[node name="AlleyWallE" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.7, 1.75, -2)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(1, 3.5, 18)
+material = ExtResource("2_wall")
+
+[node name="AlleyBack" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 1.75, -11)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(6, 3.5, 1)
+material = ExtResource("2_wall")
+
+[node name="LowCover" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.45, -4)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(2.4, 0.9, 0.6)
+material = ExtResource("3_cover")
+
+[node name="LowCover2" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.45, 7)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.6, 0.9, 2.4)
+material = ExtResource("3_cover")
+
+[node name="Pillar" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 6)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.8, 3, 0.8)
+material = ExtResource("4_accent")
+
+[node name="Pillar2" type="CSGBox3D" parent="NavigationRegion3D/Geometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, -8)
+use_collision = true
+collision_layer = 1
+collision_mask = 0
+size = Vector3(0.8, 3, 0.8)
+material = ExtResource("4_accent")
+
+[node name="Signs" type="Node3D" parent="."]
+
+[node name="Sign1" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 4.2, 8)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "ALLEY"
+
+[node name="Sign2" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, -14)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "ARENA"
+
+[node name="Sign3" type="Label3D" parent="Signs"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 3.2, 14)
+billboard = 1
+pixel_size = 0.01
+font_size = 48
+outline_size = 12
+text = "F5 restart · F6 next mode"
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Prop1" parent="Props" instance=ExtResource("8_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.4, -10)
+
+[node name="Prop2" parent="Props" instance=ExtResource("8_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.9, 0.4, -10.3)
+
+[node name="Prop3" parent="Props" instance=ExtResource("8_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.4, 1.2, -10.1)
+
+[node name="Prop4" parent="Props" instance=ExtResource("9_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0.5, 4)
+
+[node name="Prop5" parent="Props" instance=ExtResource("9_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.7, 0.5, 4.6)
+
+[node name="Prop6" parent="Props" instance=ExtResource("9_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.5, -6)
+
+[node name="Prop7" parent="Props" instance=ExtResource("10_heavy_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.6, 2)
+
+[node name="Prop8" parent="Props" instance=ExtResource("8_crate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.4, -7)
+
+[node name="Prop9" parent="Props" instance=ExtResource("9_barrel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.4, 0.5, 1)
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("22_combat_director")
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="EnemySpawner" type="Node3D" parent="." node_paths=PackedStringArray("container")]
+script = ExtResource("21_enemy_spawner")
+enemy_scene = ExtResource("7_thug")
+container = NodePath("../Enemies")
+
+[node name="Spawn1" type="Marker3D" parent="EnemySpawner"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -6)
+
+[node name="Spawn2" type="Marker3D" parent="EnemySpawner"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5, 0, -2)
+
+[node name="Spawn3" type="Marker3D" parent="EnemySpawner"]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 5, 0, -3)
+
+[node name="BatSpawns" type="Node3D" parent="."]
+
+[node name="Bat1" type="Marker3D" parent="BatSpawns"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 2, 0.1, 5)
+
+[node name="Bat2" type="Marker3D" parent="BatSpawns"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 14, 0.1, 5)
+
+[node name="PlayerSpawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+
+[node name="Player" parent="." instance=ExtResource("5_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+
+[node name="HUD" parent="." node_paths=PackedStringArray("player") instance=ExtResource("6_hud")]
+player = NodePath("../Player")

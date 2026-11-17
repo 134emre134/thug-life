@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1_weapon_data"]
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="2_attack_data"]
+[ext_resource type="Resource" path="res://data/attacks/punch_1.tres" id="3_punch_1"]
+[ext_resource type="Resource" path="res://data/attacks/punch_2.tres" id="4_punch_2"]
+[ext_resource type="Resource" path="res://data/attacks/punch_3.tres" id="5_punch_3"]
+[ext_resource type="Resource" path="res://data/attacks/punch_heavy.tres" id="6_punch_heavy"]
+
+[resource]
+script = ExtResource("1_weapon_data")
+light_combo = Array[ExtResource("2_attack_data")]([ExtResource("3_punch_1"), ExtResource("4_punch_2"), ExtResource("5_punch_3")])
+heavy_attack = ExtResource("6_punch_heavy")
+guard_clip = &"guard"
+id = &"fists"
+display_name = "Fists"
+description = "Always on you."

@@ -20,7 +20,7 @@ Never treat an [Open] item as decided. If a task needs one, ask instead of inven
 |---|---|---|
 | M0 | Setup and folder structure | done |
 | M1 | Character skeleton (GDD §19, M1.1–M1.7) | implemented, needs playtest and tuning in the editor |
-| M2 | Melee combat (GDD §7, §19 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | in progress |
+| M2 | Melee combat (GDD §7, §19 M2.1–M2.8): fists + one blunt weapon, one enemy type, combat arena | implemented; Mixamo model + locomotion in, combat clips are generated placeholders until Mixamo combat clips arrive; needs playtest/tuning |
 | M3a | Inventory, loot and lethality (GDD §7, §12, §13, §19 M3a): slot inventory, wallet, looting, death, knife, HUD | |
 | — | **Gate:** define the Core Loop (GDD §5) before M3b | |
 | M3b | District and first crime (pickpocket → witness → report → heat 1, minimap) | |
@@ -33,14 +33,17 @@ Each milestone is built on its own branch and merged by PR. A task is done when 
 
 ## Running
 
-- Main scene: `res://scenes/levels/test_gym.tscn` (gray-box gym, M1.1).
-- Controls (all bound in the InputMap, `project.godot` `[input]`): WASD move · Shift sprint · Ctrl walk · Space jump · RMB aim · Q swap shoulder · E interact · F3 debug overlay · Esc release mouse.
-- From M2 on, RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4). Keep `PlayerAim` intact, it is needed again in M4. Proposed M2 bindings are in GDD §19 M2.
+- Main scene: `res://scenes/levels/combat_gym.tscn` (M2.8 combat arena). The M1 gym `res://scenes/levels/test_gym.tscn` still works (open it and press F6).
+- Controls (all bound in the InputMap, `project.godot` `[input]`): WASD move · Shift sprint · Ctrl walk · Space jump · LMB attack (tap = light, hold 0.28 s = heavy) · MMB heavy · RMB guard · Space while guarding = dodge · E interact / pick up · G drop weapon · Q swap shoulder · F3 debug overlay (also floating labels on NPCs) · F4 play the next combat clip (debug) · F5 restart fight · F6 next fight mode (1 vs 3 → 1 vs 1 → training dummy) · Esc release mouse.
+- RMB is **guard** while unarmed or holding a melee weapon; aim mode is only used with firearms (M4). `PlayerAim` is kept intact (it is updated with `wants_aim = false`); it is needed again in M4. The M2 bindings and their deviations from the proposal are in GDD §19, "M2 implementation notes".
 - Headless checks (CI or a cloud container):
   ```bash
   godot --headless --import            # (re)generate .godot/ cache and .uid files
   godot --headless --quit-after 120    # boot the main scene for ~2 s, watch for script errors
+  godot --headless --fixed-fps 60 res://tests/combat_tests.tscn   # M2 test suite, exit code 0 = pass
   ```
+  The test suite loads the real arena and drives the real player through the InputMap (`Input.action_press`). Headless can't capture the mouse, so it sets `Player.require_mouse_capture = false`.
+- Placeholder combat clips are generated for the character skeleton: `godot --headless --script res://scripts/tools/generate_combat_clips.gd` rewrites `assets/animations/combat_placeholder.tres` (needs the model imported first).
 - Lint and format (gdtoolkit 4.x, `pip install "gdtoolkit==4.*"`). Config is in `gdlintrc`:
   ```bash
   gdformat scripts && gdlint scripts
@@ -50,16 +53,23 @@ Each milestone is built on its own branch and merged by PR. A task is done when 
 
 ```
 assets/        art and audio. Binary formats go through Git LFS (.gitattributes)
-  animations/  AnimationLibrary resources (placeholder mannequin clips for now)
-  materials/   .tres materials (gray-box grid ShaderMaterials, solid colours)
+  animations/  humanoid_tree.tres (shared AnimationTree), combat_placeholder.tres (generated),
+               mixamorig9_bone_map.tres (retarget map), mixamo/*.fbx (one clip per file)
+  materials/   .tres materials (gray-box grid ShaderMaterials, solid colours);
+               characters/ = external materials of the character model
   shaders/     .gdshader files
-  models/ textures/ audio/
-data/          data-driven content as .tres/.json (items, attacks from M2, later NPCs, crimes, ranks)
+  models/      character models (player.fbx and the textures extracted from it on import)
+  textures/ audio/
+data/          data-driven content as .tres/.json
+  attacks/     AttackData (one per punch/swing)
+  items/       ItemData and WeaponData (fists, thug_fists, bat)
 docs/          GDD and other design docs
-scenes/        .tscn, by feature: player/, levels/, interactables/, props/, ui/
+scenes/        .tscn, by feature: player/, npc/, levels/, interactables/, props/, ui/
 scripts/       .gd, mirrors scenes/ by feature:
   autoload/    global singletons (keep these few and small)
-  camera/ components/ data/ interactables/ levels/ player/ ui/
+  camera/ components/ data/ interactables/ levels/ npc/ player/ ui/
+  tools/       editor/CLI generators (not used at runtime)
+tests/         headless test scenes (combat_tests.tscn)
 ```
 
 Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `Interactable`, `InteractionComponent`) go in `scripts/components/`.
@@ -73,11 +83,11 @@ Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `I
 5. **Data-first content.** Items, crimes, NPC types, factions and ranks are Resources in `data/` (e.g. `ItemData` → `data/items/*.tres`), never hardcoded.
 6. **No special cases in the player.** Interactive objects add an `Interactable` child (an Area3D on the `interactable` layer) and connect to its `interacted` signal. External effects use duck-typed methods such as `apply_knockback(impulse: Vector3)`.
 7. **Signals up, calls down.** A parent calls methods on its children. Children report back through signals. `Events` (autoload, `scripts/autoload/events.gd`) is reserved for cross-cutting fire-and-forget events (UI notifications, later crime events).
-8. Planned system names from the GDD:
-   - **M2 (melee):** `HealthComponent`, `HitboxComponent`, `HurtboxComponent`, `MeleeCombat`, `CombatDirector` (attack tokens); resources `AttackData` (`data/attacks/*.tres`) and `WeaponData` (extends `ItemData`).
+8. System names from the GDD:
+   - **M2 (melee, implemented):** `HealthComponent`, `HitboxComponent` (attacker's damaging volume), `HurtboxComponent` (where a character can be hit), `MeleeCombat`, `SoftTargeting`, `CombatDirector` (attack tokens), `RagdollComponent`, `ModelFlash`, `CombatAudio`, `HitStop`; NPC side `NpcCharacter` (thin body) + `ThugAI` (controller). Resources `AttackData` (`data/attacks/*.tres`) and `WeaponData` (extends `ItemData`, `data/items/`). `MeleeCombat` takes a `MeleeCombat.Intent` each tick, like `PlayerMovement`, and changes movement only by editing the movement intent in `apply_to_movement()` (lock, lunge/dodge velocity override, guard strafing). Animation requests go up as `clip_requested` / `clip_stopped` signals; the character root connects them to its `PlayerAnimator`.
    - **M3a (inventory/loot):** `InventoryComponent`, `LootTable` (`data/loot/*.tres`); `HealthComponent` gains a `dead` state, `AttackData` a `damage_type`.
    - **M3b (crime):** `CrimeManager`, `WitnessComponent`, `HeatManager`. Crime definitions are `.tres`.
-9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals (`hit_landed`, `knocked_out`, later `killed`). The M3b `CrimeManager` listens and turns them into crime events; no crime or heat code goes into combat components.
+9. **Combat doesn't know about crime.** Combat reports hits and knockouts through signals: `MeleeCombat.hit_landed(attacker, victim, attack)` and `HealthComponent.knocked_out(victim, by)` (later `killed`). Every `MeleeCombat` is in the `combatants` group, so the M3b `CrimeManager` can find and connect to all of them; no crime or heat code goes into combat components.
 
 ### Physics layers (`project.godot` `[layer_names]`)
 
@@ -87,29 +97,40 @@ Scenes and scripts are kept in parallel trees. Reusable building blocks (e.g. `I
 | 2 | 2 | player | player body |
 | 3 | 4 | props | RigidBody3D props |
 | 4 | 8 | interactable | `Interactable` areas (detection only) |
-| 5 | 16 | npc | NPCs and enemies (M2) |
+| 5 | 16 | npc | NPCs and enemies |
+| 6 | 32 | hitbox | `HitboxComponent` (attack volumes, detection only, mask = hurtbox) |
+| 7 | 64 | hurtbox | `HurtboxComponent` (detection only) |
+| 8 | 128 | ragdoll | knockout ragdoll bodies (collide with world, props, ragdoll; nothing collides with them) |
 
-M2 adds separate hitbox and hurtbox layers (detection only); add them here and in `[layer_names]` when they land.
-
-The player body mask is world + props + npc. The camera sweep hits only `world`, so small props don't make the camera jitter. The aim ray hits world + props + npc.
+The player body mask is world + props + npc (NPC bodies: world + player + props + npc). Knocked-out characters set their body layer to 0 so others can walk through. The camera sweep hits only `world`, so small props don't make the camera jitter. The aim ray hits world + props + npc.
 
 ### Things that are easy to get wrong
 
 - **Physics interpolation is on** (`physics/common/physics_interpolation`). Move gameplay bodies only in `_physics_process`. Anything that follows a body in `_process` (the camera rig) must set `physics_interpolation_mode = OFF` on itself and interpolate the body's position itself: sample it in `_physics_process` and lerp with `Engine.get_physics_interpolation_fraction()`. After teleporting a body, call `reset_physics_interpolation()`.
 - **The camera sweeps for collisions itself**, in `CameraRig._process`, using shape casts. The `SpringArm3D` node is kept only to hold the arm's shape and mask, and its own processing is disabled: a physics-rate spring arm under a frame-rate rig jitters. It does two sweeps: pivot → shoulder (so the side offset doesn't clip in narrow corridors), then shoulder → camera.
 - **The aim ray starts at the character's depth** along the camera ray, so geometry between the camera and the character (e.g. a cover edge) is ignored. `PlayerAim.is_obstructed` reports whether the line of fire from the chest is blocked. The HUD shows this as a red marker.
-- **AnimationTree** lives in `player.tscn`, holds the animation library itself (no AnimationPlayer) and uses `root_node = ../Model/Mannequin`. Its parameter names (`locomotion`, `strafe`, `aim_blend`, `air_blend`) are a contract with `PlayerAnimator`. Blend-space points sit at the speed each clip was authored for (walk 2.0, run 4.5, sprint 7.0, strafe 2.5 m/s, matching `PlayerMovement`), which prevents foot sliding. If you change a speed, move the point too.
+- **AnimationTree**: player and thug scenes each have an AnimationTree node (no AnimationPlayer, `root_node = ../Model/Character`). Its libraries are one per Mixamo clip file, keyed by clip name (`idle`, `walk`, … each holding one animation of the same name, so paths are `walk/walk`), plus `combat` (`combat_placeholder.tres`). Both scenes share the tree resource `assets/animations/humanoid_tree.tres` (parameters are per node, so sharing is safe). Its node names (`locomotion`, `locomotion_speed`, `strafe`, `strafe_speed`, `aim_blend`, `air_blend`, `guard_clip`, `guard_blend`, `combat_clip`, `combat_speed`, `combat_blend`) are a contract with `PlayerAnimator`. The inputs of the `combat_clip` / `guard_clip` Transition nodes are named after the clips (`AttackData.clip`, `WeaponData.guard_clip` / `ready_clip` refer to them); each input is fed by a node `clip_<name>`, and **that node decides which animation plays**, so swapping a placeholder for a real clip means changing its `animation` (`combat/punch_1` → `punch_1/punch_1`). `guard_blend` is filtered to every bone from `Spine` up, so the legs keep moving. `PlayerAnimator.play_combat_clip` time-stretches a clip so `AttackData.clip_hit_time` lines up with the start of the active phase. Blend-space points sit at each clip's measured ground speed (walk 1.53, run 3.91, sprint 5.63; strafe fwd 2.26, back 1.32, left 2.06, right 2.18 m/s); `PlayerAnimator` speeds clips up (TimeScale) when moving faster than the outermost point, so `PlayerMovement` speeds can stay higher. New clip → measure its speed and move its point.
 - **Hand-edited `.tscn` files:** a Node-typed `@export` (e.g. `@export var model: Node3D`) is only resolved if its name is listed in the node header, as in `[node name="Movement" ... node_paths=PackedStringArray("body", "model")]`. Without it the property stays null and nothing reports an error. Prefer assigning these in the editor.
+- **Character bodies are never rotated.** `PlayerMovement` writes a *world* yaw into `model.rotation.y`, so only the `Model` node turns. Spawn and revive code sets the body position and turns the model (`EnemySpawner.spawn`, `Player.revive`); never assign a rotated `global_transform` to a character body.
+- **Hit stop** (`HitStop`) slows the whole game through `Engine.time_scale` and ends with an unscaled `SceneTreeTimer`. Don't compare it against wall-clock time (fixed-fps runs and hitches desync it), and don't capture the timer in its own callback (reference cycle → every timer leaks). `HitStop.cancel()` on fight restarts.
+- **Navigation**: the arena bakes with `NavigationBaker.bake_csg_boxes()` (CPU-side source geometry from `CSGBox3D` sizes). The engine's CSG parser reads meshes back from the GPU and finds nothing headless. Bake into a *new* `NavigationMesh` (re-assigning the region's own resource doesn't update the server), and the map syncs asynchronously: `combat_gym.gd` waits until the region owns the map before spawning NPCs.
+- **The character model faces +Z** (Mixamo); `Model/Character` is turned 180° in the scenes. Clips and the placeholder generator work in the skeleton's own space (+Z forward, character's right = −X).
+- **Retargeted import**: models and clips import with `retarget/bone_map = mixamorig9_bone_map.tres`, so bones have humanoid names (`Hips`, `LeftUpperArm`, …) and the skeleton is the unique node `%GeneralSkeleton`; clip tracks are `%GeneralSkeleton:<Bone>`. Hips position tracks are stored divided by `Skeleton3D.motion_scale` (hip height) and scaled back on playback. A Mixamo download with another prefix (`mixamorig_`) needs its own map: `godot --headless --script res://scripts/tools/generate_mixamo_bone_map.gd -- mixamorig_`.
+- **Character materials are external** (`assets/materials/characters/*.tres`, wired in `player.fbx.import` under `_subresources.materials`). The FBX importer's own materials came out untextured, taking their colour from vertex colours the mesh doesn't have (grey and see-through in game). A new model needs the same: one material per surface with its albedo and normal textures.
+- **Keep GDScript warnings at zero.** The editor and VS Code's Problems panel show them; the debug console lists them when the game starts.
+- **Ragdoll**: `RagdollComponent` builds `PhysicalBone3D`s under the skeleton at knockout (runtime, so the imported scene stays untouched) and frees them on revive.
+- **Weapon pickup scenes don't reference their `WeaponData`** (`bat.tres` → `pickup_scene` → `bat.tres` would be a cyclic load). Whoever spawns a pickup sets `pickup.weapon`.
 - Stair stepping is done in code (`PlayerMovement._try_step_up`, `step_height` 0.35 m). Slopes up to `max_slope_degrees` (46°) are handled by `move_and_slide`. Rigid bodies are pushed, never stepped onto.
 
-### Swapping in the Mixamo character (M1.7 follow-up, now task M2.1)
+### Adding Mixamo clips (M2.1)
 
-The mannequin in `scenes/player/mannequin.tscn` is a primitive-mesh stand-in with procedurally authored clips (`assets/animations/mannequin_placeholder.tres`). To replace it:
-1. Import the Mixamo FBX/GLB into `assets/models/` (it goes through LFS). Download the clips "In Place".
-2. Replace the `Model/Mannequin` instance and point `AnimationTree.root_node` at the new model.
-3. Put the new clips in an AnimationLibrary under the same names (`idle`, `walk`, `run`, `sprint`, `aim_idle`, `aim_forward`, `aim_backward`, `aim_left`, `aim_right`, `fall`), or rename the nodes in the tree.
-4. Measure each clip's real ground speed and move its blend-space point to that speed.
-5. M2.1 also adds the combat clips (combo, heavy, guard, dodge, hit reactions, get-up; unarmed and bat). Download them "In Place" too; lunges are moved in code by `MeleeCombat`.
+Download from Mixamo as FBX, 30 fps, **without skin**, **"In Place"** (the import removes leftover drift and prints its speed, but in-place is cleaner), for the same character as `player.fbx`.
+1. Put the file in `assets/animations/mixamo/<clip>.fbx` (LFS). The file name becomes the clip name.
+2. Give it the same import settings as the existing clips: copy a neighbouring `.fbx.import`, keep its own `uid` and `source_file` (or in the Import dock: *Animation Library*, skeleton retarget with `mixamorig9_bone_map.tres`, post-import script `scripts/tools/mixamo_clip_post_import.gd`, and *Loop Mode* for looping clips). Commit the `.import` file.
+3. Add the library to the AnimationTree `libraries` in **both** `scenes/player/player.tscn` and `scenes/npc/thug.tscn` under the clip's name.
+4. Point the tree node at it: for a combat clip, set `clip_<name>.animation` to `<clip>/<clip>` in `humanoid_tree.tres`; for a new clip name, add a `combat_clip` input and an `AttackData.clip` referencing it.
+5. Combat clips: set `AttackData.clip_hit_time` to the clip's contact time. Locomotion: measure its ground speed and move its blend point.
+6. Run the test suite; F4 in game plays every combat clip.
 
 ## Code style
 

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="1_attack_data"]
+
+[resource]
+script = ExtResource("1_attack_data")
+id = &"thug_jab"
+clip = &"punch_2"
+clip_hit_time = 0.12
+windup = 0.5
+active = 0.1
+recovery = 0.45
+damage = 10
+reaction = 1
+breaks_guard = false
+knockback = 140
+knockback_lift = 0
+reach = 0.85
+hit_radius = 0.45
+hit_height = 1.35
+lunge_distance = 1
+step_distance = 0.2
+hit_stop = 0.05
+camera_shake = 0.25

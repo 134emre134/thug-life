@@ -1,0 +1,156 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/player.fbx" id="40_character"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/combat_placeholder.tres" id="41_combat"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/idle.fbx" id="50_idle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/walk.fbx" id="51_walk"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/run.fbx" id="52_run"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/sprint.fbx" id="53_sprint"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_idle.fbx" id="54_aim_idle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_forward.fbx" id="55_aim_forward"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_backward.fbx" id="56_aim_backward"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_left.fbx" id="57_aim_left"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/aim_right.fbx" id="58_aim_right"]
+[ext_resource type="AnimationLibrary" path="res://assets/animations/mixamo/fall.fbx" id="59_fall"]
+[ext_resource type="AnimationNodeBlendTree" path="res://assets/animations/humanoid_tree.tres" id="3_humanoid_tree"]
+[ext_resource type="Script" path="res://scripts/npc/npc_character.gd" id="10_npc_character"]
+[ext_resource type="Script" path="res://scripts/player/player_movement.gd" id="12_movement"]
+[ext_resource type="Script" path="res://scripts/player/player_animator.gd" id="13_animator"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="14_health"]
+[ext_resource type="Script" path="res://scripts/components/hurtbox_component.gd" id="15_hurtbox"]
+[ext_resource type="Script" path="res://scripts/components/hitbox_component.gd" id="16_hitbox"]
+[ext_resource type="Script" path="res://scripts/components/melee_combat.gd" id="17_melee_combat"]
+[ext_resource type="Resource" path="res://data/items/thug_fists.tres" id="18_thug_fists"]
+[ext_resource type="Script" path="res://scripts/components/ragdoll_component.gd" id="19_ragdoll"]
+[ext_resource type="Script" path="res://scripts/components/model_flash.gd" id="20_model_flash"]
+[ext_resource type="Script" path="res://scripts/components/combat_audio.gd" id="21_combat_audio"]
+[ext_resource type="Script" path="res://scripts/npc/thug_ai.gd" id="22_thug_ai"]
+[ext_resource type="Script" path="res://scripts/ui/combat_debug_label.gd" id="23_debug_label"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hurtbox"]
+radius = 0.4
+height = 1.8
+
+[node name="Thug" type="CharacterBody3D"]
+collision_layer = 16
+collision_mask = 23
+script = ExtResource("10_npc_character")
+tint_color = Color(1, 0.55, 0.5, 1)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Character" parent="Model" instance=ExtResource("40_character")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+
+[node name="RightHandAttachment" type="BoneAttachment3D" parent="Model/Character/GeneralSkeleton"]
+bone_name = "RightHand"
+
+[node name="Grip" type="Node3D" parent="Model/Character/GeneralSkeleton/RightHandAttachment"]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, -0.15, 0.08, 0.03)
+
+[node name="Hitbox" type="Area3D" parent="Model"]
+script = ExtResource("16_hitbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Hitbox"]
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+root_node = NodePath("../Model/Character")
+libraries = {
+&"idle": ExtResource("50_idle"),
+&"walk": ExtResource("51_walk"),
+&"run": ExtResource("52_run"),
+&"sprint": ExtResource("53_sprint"),
+&"aim_idle": ExtResource("54_aim_idle"),
+&"aim_forward": ExtResource("55_aim_forward"),
+&"aim_backward": ExtResource("56_aim_backward"),
+&"aim_left": ExtResource("57_aim_left"),
+&"aim_right": ExtResource("58_aim_right"),
+&"fall": ExtResource("59_fall"),
+&"combat": ExtResource("41_combat")
+}
+tree_root = ExtResource("3_humanoid_tree")
+
+[node name="Movement" type="Node" parent="." node_paths=PackedStringArray("body", "model")]
+script = ExtResource("12_movement")
+body = NodePath("..")
+model = NodePath("../Model")
+sprint_speed = 6.0
+
+[node name="Health" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("14_health")
+max_health = 100.0
+body = NodePath("..")
+
+[node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health", "body")]
+script = ExtResource("15_hurtbox")
+health = NodePath("../Health")
+body = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_hurtbox")
+
+[node name="Combat" type="Node" parent="." node_paths=PackedStringArray("body", "model", "health", "hitbox", "hurtbox", "weapon_socket")]
+script = ExtResource("17_melee_combat")
+body = NodePath("..")
+model = NodePath("../Model")
+health = NodePath("../Health")
+hitbox = NodePath("../Model/Hitbox")
+hurtbox = NodePath("../Hurtbox")
+weapon_socket = NodePath("../Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
+team = &"thugs"
+unarmed = ExtResource("18_thug_fists")
+track_target_in_windup = false
+dodge_clip = &"dodge"
+
+[node name="AI" type="Node" parent="." node_paths=PackedStringArray("body", "combat", "agent")]
+script = ExtResource("22_thug_ai")
+body = NodePath("..")
+combat = NodePath("../Combat")
+agent = NodePath("../NavigationAgent3D")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.6
+target_desired_distance = 0.8
+height = 1.8
+radius = 0.4
+
+[node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("skeleton")]
+script = ExtResource("19_ragdoll")
+skeleton = NodePath("../Model/Character/GeneralSkeleton")
+
+[node name="Flash" type="Node" parent="." node_paths=PackedStringArray("model")]
+script = ExtResource("20_model_flash")
+model = NodePath("../Model")
+
+[node name="CombatAudio" type="AudioStreamPlayer3D" parent="." node_paths=PackedStringArray("combat")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+script = ExtResource("21_combat_audio")
+combat = NodePath("../Combat")
+
+[node name="Animator" type="Node" parent="." node_paths=PackedStringArray("animation_tree", "body", "model")]
+script = ExtResource("13_animator")
+animation_tree = NodePath("../AnimationTree")
+body = NodePath("..")
+model = NodePath("../Model")
+
+[node name="DebugLabel" type="Label3D" parent="." node_paths=PackedStringArray("combat", "health", "ai")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.25, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+pixel_size = 0.004
+font_size = 40
+outline_size = 10
+script = ExtResource("23_debug_label")
+combat = NodePath("../Combat")
+health = NodePath("../Health")
+ai = NodePath("../AI")

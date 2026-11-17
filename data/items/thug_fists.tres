@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_data.gd" id="1_weapon_data"]
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="2_attack_data"]
+[ext_resource type="Resource" path="res://data/attacks/thug_jab.tres" id="3_thug_jab"]
+[ext_resource type="Resource" path="res://data/attacks/thug_hook.tres" id="4_thug_hook"]
+[ext_resource type="Resource" path="res://data/attacks/thug_heavy.tres" id="5_thug_heavy"]
+
+[resource]
+script = ExtResource("1_weapon_data")
+light_combo = Array[ExtResource("2_attack_data")]([ExtResource("3_thug_jab"), ExtResource("4_thug_hook")])
+heavy_attack = ExtResource("5_thug_heavy")
+guard_clip = &"guard"
+id = &"thug_fists"
+display_name = "Fists"
+description = "Slow, telegraphed street punches (enemy move set)."
