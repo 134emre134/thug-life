@@ -187,6 +187,19 @@ func is_right_shoulder() -> bool:
 	return _target_side > 0.0
 
 
+## Moves the camera to the right ([param right]) or left shoulder.
+func set_shoulder(right: bool) -> void:
+	if right != is_right_shoulder():
+		swap_shoulder()
+
+
+## Weapon kick (M4b): tilts the view up by [param degrees].
+func add_recoil(degrees: float) -> void:
+	pitch = clampf(
+		pitch + deg_to_rad(degrees), deg_to_rad(min_pitch_degrees), deg_to_rad(max_pitch_degrees)
+	)
+
+
 ## Basis containing only the yaw; use to make input camera-relative.
 func get_yaw_basis() -> Basis:
 	return Basis(Vector3.UP, yaw)

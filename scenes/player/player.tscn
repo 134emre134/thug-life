@@ -40,6 +40,21 @@
 [ext_resource type="AnimationLibrary" uid="uid://glwyc55sojc5" path="res://assets/animations/mixamo/stand_to_crouch.fbx" id="clip_stand_to_crouch"]
 [ext_resource type="AnimationLibrary" uid="uid://brylm5tj55wfc" path="res://assets/animations/mixamo/turn_around.fbx" id="clip_turn_around"]
 [ext_resource type="AnimationLibrary" uid="uid://d1p4beq3go7i1" path="res://assets/animations/mixamo/weapon_2h_idle.fbx" id="clip_weapon_2h_idle"]
+[ext_resource type="AnimationLibrary" uid="uid://yl3lu6pe6t1k" path="res://assets/animations/mixamo/rifle_aim_idle.fbx" id="clip_rifle_aim_idle"]
+[ext_resource type="AnimationLibrary" uid="uid://bicqah5cyt7tm" path="res://assets/animations/mixamo/rifle_fire.fbx" id="clip_rifle_fire"]
+[ext_resource type="AnimationLibrary" uid="uid://d0vf8bdqslqrg" path="res://assets/animations/mixamo/rifle_hit_react.fbx" id="clip_rifle_hit_react"]
+[ext_resource type="AnimationLibrary" uid="uid://bkujbw7xc8y7k" path="res://assets/animations/mixamo/rifle_jump.fbx" id="clip_rifle_jump"]
+[ext_resource type="AnimationLibrary" uid="uid://ce4vybexakdtu" path="res://assets/animations/mixamo/rifle_reload.fbx" id="clip_rifle_reload"]
+[ext_resource type="AnimationLibrary" uid="uid://duusxdenmaq0j" path="res://assets/animations/mixamo/rifle_run.fbx" id="clip_rifle_run"]
+[ext_resource type="AnimationLibrary" uid="uid://bievouilrxcxa" path="res://assets/animations/mixamo/rifle_run_backward.fbx" id="clip_rifle_run_backward"]
+[ext_resource type="AnimationLibrary" uid="uid://bg3tgqtfym4sk" path="res://assets/animations/mixamo/rifle_strafe.fbx" id="clip_rifle_strafe"]
+[ext_resource type="AnimationLibrary" uid="uid://b5f5n74o1jl7e" path="res://assets/animations/mixamo/rifle_strafe_2.fbx" id="clip_rifle_strafe_2"]
+[ext_resource type="AnimationLibrary" uid="uid://cd2e13murhhhh" path="res://assets/animations/mixamo/rifle_strafe_left.fbx" id="clip_rifle_strafe_left"]
+[ext_resource type="AnimationLibrary" uid="uid://bgp4cist6h3jg" path="res://assets/animations/mixamo/rifle_strafe_right.fbx" id="clip_rifle_strafe_right"]
+[ext_resource type="AnimationLibrary" uid="uid://ewh3iagxel6u" path="res://assets/animations/mixamo/rifle_turn_left.fbx" id="clip_rifle_turn_left"]
+[ext_resource type="AnimationLibrary" uid="uid://co0n1t15iwqrj" path="res://assets/animations/mixamo/rifle_turn_right_45.fbx" id="clip_rifle_turn_right_45"]
+[ext_resource type="AnimationLibrary" uid="uid://cje2ptbqtcivx" path="res://assets/animations/mixamo/rifle_walk.fbx" id="clip_rifle_walk"]
+[ext_resource type="AnimationLibrary" uid="uid://dx4gwo4m0nglp" path="res://assets/animations/mixamo/rifle_walk_backward.fbx" id="clip_rifle_walk_backward"]
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="20_player"]
 [ext_resource type="Script" path="res://scripts/player/player_movement.gd" id="22_player_movement"]
 [ext_resource type="Script" path="res://scripts/player/player_aim.gd" id="23_player_aim"]
@@ -58,6 +73,9 @@
 [ext_resource type="Script" path="res://scripts/components/model_flash.gd" id="34_model_flash"]
 [ext_resource type="Script" path="res://scripts/components/combat_audio.gd" id="35_combat_audio"]
 [ext_resource type="Script" path="res://scripts/components/inventory_component.gd" id="36_inventory"]
+[ext_resource type="Script" path="res://scripts/components/ranged_combat.gd" id="37_ranged"]
+[ext_resource type="Script" path="res://scripts/components/cover_component.gd" id="38_cover"]
+[ext_resource type="Script" path="res://scripts/components/firearm_effects.gd" id="39_firearm_fx"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
@@ -139,6 +157,21 @@ libraries = {
 &"stand_to_crouch": ExtResource("clip_stand_to_crouch"),
 &"turn_around": ExtResource("clip_turn_around"),
 &"weapon_2h_idle": ExtResource("clip_weapon_2h_idle"),
+&"rifle_aim_idle": ExtResource("clip_rifle_aim_idle"),
+&"rifle_fire": ExtResource("clip_rifle_fire"),
+&"rifle_hit_react": ExtResource("clip_rifle_hit_react"),
+&"rifle_jump": ExtResource("clip_rifle_jump"),
+&"rifle_reload": ExtResource("clip_rifle_reload"),
+&"rifle_run": ExtResource("clip_rifle_run"),
+&"rifle_run_backward": ExtResource("clip_rifle_run_backward"),
+&"rifle_strafe": ExtResource("clip_rifle_strafe"),
+&"rifle_strafe_2": ExtResource("clip_rifle_strafe_2"),
+&"rifle_strafe_left": ExtResource("clip_rifle_strafe_left"),
+&"rifle_strafe_right": ExtResource("clip_rifle_strafe_right"),
+&"rifle_turn_left": ExtResource("clip_rifle_turn_left"),
+&"rifle_turn_right_45": ExtResource("clip_rifle_turn_right_45"),
+&"rifle_walk": ExtResource("clip_rifle_walk"),
+&"rifle_walk_backward": ExtResource("clip_rifle_walk_backward"),
 &"combat": ExtResource("41_combat")
 }
 tree_root = ExtResource("3_humanoid_tree")
@@ -200,6 +233,22 @@ health = NodePath("../Health")
 body = NodePath("..")
 model = NodePath("../Model")
 drop_origin = NodePath("../Model/Character/GeneralSkeleton/RightHandAttachment/Grip")
+
+[node name="Ranged" type="Node" parent="." node_paths=PackedStringArray("body", "melee", "inventory", "hurtbox", "movement")]
+script = ExtResource("37_ranged")
+body = NodePath("..")
+melee = NodePath("../Combat")
+inventory = NodePath("../Inventory")
+hurtbox = NodePath("../Hurtbox")
+movement = NodePath("../Movement")
+
+[node name="Cover" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("38_cover")
+body = NodePath("..")
+
+[node name="FirearmFx" type="Node3D" parent="." node_paths=PackedStringArray("ranged")]
+script = ExtResource("39_firearm_fx")
+ranged = NodePath("../Ranged")
 
 [node name="Ragdoll" type="Node" parent="." node_paths=PackedStringArray("skeleton")]
 script = ExtResource("33_ragdoll")

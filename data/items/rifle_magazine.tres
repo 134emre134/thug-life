@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="1_item_data"]
+
+[resource]
+script = ExtResource("1_item_data")
+id = &"rifle_magazine"
+display_name = "Rifle magazine"
+description = "Eight rounds. Reloads the rifle once (R)."
+value = 15

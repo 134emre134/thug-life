@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="FirearmData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/firearm_data.gd" id="1_firearm_data"]
+[ext_resource type="Script" path="res://scripts/data/attack_data.gd" id="2_attack_data"]
+[ext_resource type="Resource" path="res://data/attacks/rifle_shot.tres" id="3_rifle_shot"]
+[ext_resource type="Resource" path="res://data/items/rifle_magazine.tres" id="4_magazine"]
+[ext_resource type="PackedScene" path="res://scenes/props/rifle_held.tscn" id="5_rifle_held"]
+[ext_resource type="PackedScene" path="res://scenes/interactables/weapon_pickup_rifle.tscn" id="6_rifle_pickup"]
+
+[resource]
+script = ExtResource("1_firearm_data")
+fire_attack = ExtResource("3_rifle_shot")
+fire_interval = 0.32
+max_range = 60.0
+spread_degrees = 0.25
+moving_spread_degrees = 2.0
+unaimed_spread_degrees = 2.5
+aim_raise_time = 0.15
+prop_impulse = 6.0
+magazine_size = 8
+ammo_item = ExtResource("4_magazine")
+fire_clip = &"rifle_fire"
+reload_clip = &"rifle_reload"
+reload_speed = 1.0
+recoil_degrees = 1.0
+fire_camera_shake = 0.12
+light_combo = Array[ExtResource("2_attack_data")]([])
+guard_clip = &"guard"
+ready_clip = &"rifle_ready"
+held_scene = ExtResource("5_rifle_held")
+pickup_scene = ExtResource("6_rifle_pickup")
+flinch_clips = Array[StringName]([&"rifle_hit_react"])
+id = &"rifle"
+display_name = "Rifle"
+description = "Semi-automatic, eight rounds a magazine. Loud, lethal, and every round counts."
+value = 400

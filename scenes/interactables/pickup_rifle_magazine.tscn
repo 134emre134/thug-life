@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interactables/pickup.gd" id="1_pickup"]
+[ext_resource type="Resource" path="res://data/items/rifle_magazine.tres" id="2_magazine"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/gun_metal.tres" id="3_metal"]
+[ext_resource type="StandardMaterial3D" path="res://assets/materials/interactable.tres" id="4_interactable"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="5_interactable"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_magazine"]
+size = Vector3(0.05, 0.2, 0.09)
+material = ExtResource("3_metal")
+
+[sub_resource type="BoxMesh" id="BoxMesh_band"]
+size = Vector3(0.055, 0.04, 0.095)
+material = ExtResource("4_interactable")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_zone"]
+radius = 0.6
+
+[node name="PickupRifleMagazine" type="Node3D"]
+script = ExtResource("1_pickup")
+item = ExtResource("2_magazine")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Magazine" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+mesh = SubResource("BoxMesh_magazine")
+
+[node name="Band" type="MeshInstance3D" parent="Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+mesh = SubResource("BoxMesh_band")
+
+[node name="Interactable" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+script = ExtResource("5_interactable")
+prompt_text = "Pick up"
+one_shot = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_zone")

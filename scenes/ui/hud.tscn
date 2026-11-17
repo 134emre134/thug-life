@@ -49,6 +49,16 @@ font_size = 18
 outline_size = 4
 outline_color = Color(0, 0, 0, 0.9)
 
+[sub_resource type="LabelSettings" id="LabelSettings_ammo"]
+font_size = 22
+outline_size = 5
+outline_color = Color(0, 0, 0, 0.9)
+
+[sub_resource type="LabelSettings" id="LabelSettings_hit"]
+font_size = 30
+outline_size = 4
+outline_color = Color(0, 0, 0, 0.8)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hold_fill"]
 bg_color = Color(1, 0.85, 0.3, 1)
 
@@ -142,8 +152,8 @@ anchor_left = 1
 anchor_top = 1
 anchor_right = 1
 anchor_bottom = 1
-offset_left = -330
-offset_top = -230
+offset_left = -390
+offset_top = -290
 offset_right = -12
 offset_bottom = -12
 grow_horizontal = 0
@@ -152,10 +162,12 @@ mouse_filter = 2
 label_settings = SubResource("LabelSettings_debug")
 horizontal_alignment = 2
 vertical_alignment = 2
-text = "WASD move · Shift sprint · Ctrl walk · Space jump
+text = "WASD move · Shift sprint · Ctrl walk · Space jump · C crouch
 LMB attack (hold: heavy) · MMB heavy · RMB guard
-Space while guarding: dodge · E pick up / hold E search
-G drop · H holster · Tab inventory
+Rifle: RMB aim · LMB fire · R reload
+Space while guarding/aiming: dodge · F cover
+1 fists · 2 melee · 3 rifle · wheel switch
+E pick up / hold E search · G drop · H holster · Tab inventory
 Q swap shoulder · F3 debug · F4 play clips
 F5 restart fight · F6 next mode (district: in the gym)
 Esc release mouse"
@@ -184,6 +196,33 @@ offset_right = 300
 offset_bottom = -4
 text = "Fists"
 label_settings = SubResource("LabelSettings_debug")
+
+[node name="Ammo" type="Label" parent="HealthBar"]
+layout_mode = 0
+offset_left = 310
+offset_top = -6
+offset_right = 470
+offset_bottom = 26
+label_settings = SubResource("LabelSettings_ammo")
+
+[node name="HitMarker" type="Label" parent="."]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16
+offset_top = -16
+offset_right = 16
+offset_bottom = 16
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+text = "x"
+label_settings = SubResource("LabelSettings_hit")
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="TargetMarker" type="Label" parent="."]
 layout_mode = 3

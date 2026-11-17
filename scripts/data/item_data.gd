@@ -12,6 +12,6 @@ enum Slot { POCKET, MELEE, FIREARM }
 @export var value: int = 0
 
 
-## Slot kind; [WeaponData] answers [code]MELEE[/code] (firearms from M4).
+## Slot kind; [WeaponData] answers [code]MELEE[/code], [FirearmData] [code]FIREARM[/code].
 func get_slot() -> Slot:
 	return Slot.POCKET

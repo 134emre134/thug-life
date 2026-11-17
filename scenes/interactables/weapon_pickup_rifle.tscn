@@ -1,0 +1,36 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interactables/weapon_pickup.gd" id="1_weapon_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/props/rifle_model.tscn" id="2_rifle_model"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="3_interactable"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_rifle"]
+friction = 0.9
+bounce = 0.05
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_rifle"]
+size = Vector3(0.06, 0.14, 0.98)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_zone"]
+radius = 0.8
+
+[node name="WeaponPickupRifle" type="RigidBody3D"]
+collision_layer = 4
+collision_mask = 23
+mass = 3.5
+physics_material_override = SubResource("PhysicsMaterial_rifle")
+angular_damp = 1.0
+script = ExtResource("1_weapon_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.2)
+shape = SubResource("BoxShape3D_rifle")
+
+[node name="RifleModel" parent="." instance=ExtResource("2_rifle_model")]
+
+[node name="Interactable" type="Area3D" parent="."]
+script = ExtResource("3_interactable")
+prompt_text = "Pick up"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+shape = SubResource("SphereShape3D_zone")

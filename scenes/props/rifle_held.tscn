@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/props/rifle_model.tscn" id="1_rifle_model"]
+
+[node name="RifleHeld" type="Node3D"]
+
+[node name="RifleModel" parent="." instance=ExtResource("1_rifle_model")]
+transform = Transform3D(0.44793, -0.040076, -0.89317, -0.30065, -0.94757, -0.108262, -0.842002, 0.317025, -0.436494, 0, 0, 0)

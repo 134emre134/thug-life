@@ -1,8 +1,9 @@
 class_name AttackData
 extends Resource
-## One melee attack (a single punch, swing, stab or stomp). Instances live in
+## One attack (a single punch, swing, stab, stomp or shot). Instances live in
 ## res://data/attacks/*.tres and are referenced by a [WeaponData] (stomps by
-## [member MeleeCombat.stomp_attack]).
+## [member MeleeCombat.stomp_attack], shots by [member FirearmData.fire_attack]).
+## A shot only uses the damage, reaction, guard, knockback and feel fields.
 ##
 ## Timeline: windup -> active -> recovery. Hits only land during the active
 ## phase. The next attack of a combo can start during recovery.
@@ -48,6 +49,8 @@ const MAX_SPEED := 1.0
 @export var reaction: Reaction = Reaction.FLINCH
 ## Breaks a guard instead of being blocked by it.
 @export var breaks_guard: bool = false
+## False: a guard doesn't stop it at all (shots, M4b).
+@export var can_be_blocked: bool = true
 ## Knockback impulse on the victim (N·s) along the hit direction. 80 kg: 160 -> 2 m/s.
 @export var knockback: float = 120.0
 ## Extra upward share of the knockback (0 = flat).

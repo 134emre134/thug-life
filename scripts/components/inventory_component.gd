@@ -1,18 +1,27 @@
 class_name InventoryComponent
 extends Node
 ## What a character carries (GDD §12), for the player and NPCs alike:
-## one melee slot, one firearm slot (inactive until M4), a few pocket slots and
-## a wallet (cash is a number, not an item).
+## one melee slot, one firearm slot (M4b), a few pocket slots and a wallet
+## (cash is a number, not an item).
 ##
-## The inventory owns weapons. The melee weapon is either drawn (in hand: the
-## [MeleeCombat] fights with it) or holstered (carried, fists in use).
-## Dropping spawns the weapon's world pickup. NPCs fill their inventory from a
-## [LootTable] on spawn; looting moves the contents to another inventory with
-## [method transfer_to].
+## The inventory owns weapons. At most one weapon is drawn (in hand: the
+## [MeleeCombat] holds it, [RangedCombat] fires a drawn firearm); the other
+## is holstered (carried). Nothing drawn = fists. Dropping spawns the weapon's
+## world pickup. NPCs fill their inventory from a [LootTable] on spawn;
+## looting moves the contents to another inventory with [method transfer_to].
+##
+## Weapon switching (M4b.2): [method draw] picks the hand (unarmed, melee or
+## firearm), [method get_next_hand] steps through the carried ones.
+##
+## Ammo (M4b.1): the firearm's magazine holds [member firearm_rounds]; ammo
+## items are ordinary pocket items. [RangedCombat] uses rounds and reloads.
 
-## Any slot or the wallet changed.
+## Any slot, the drawn weapon, the magazine or the wallet changed.
 signal changed
 signal cash_changed(cash: int, delta: int)
+
+## What is in hand.
+enum Hand { NONE, MELEE, FIREARM }
 
 
 ## Result of [method transfer_to].
@@ -39,19 +48,21 @@ class Transfer:
 
 @export_group("Slots")
 @export_range(0, 12) var pocket_slots: int = 4
-## Firearm slot; stays inactive until M4.
-@export var firearm_slot_active: bool = false
+## Firearm slot (active since M4b).
+@export var firearm_slot_active: bool = true
 
 @export_group("Start")
 @export var start_cash: int = 0
 @export var start_melee: WeaponData
+## Carried from the start, drawn unless [member start_melee] is set too.
+@export var start_firearm: FirearmData
 @export var start_items: Array[ItemData] = []
 ## Rolled into the inventory on spawn (NPC types).
 @export var loot_table: LootTable
 @export var roll_loot_on_ready: bool = true
 
 @export_group("Drop")
-## Knockout and death drop the melee weapon physically (GDD §7 Weapons).
+## Knockout and death drop the carried weapons physically (GDD §7 Weapons).
 @export var drop_on_down: bool = true
 ## Velocity given to a dropped weapon (m/s, local to the model: -Z forward).
 @export var drop_velocity: Vector3 = Vector3(0.0, 1.5, -1.0)
@@ -60,8 +71,11 @@ var cash: int = 0
 var melee: WeaponData = null
 ## The melee weapon is in hand (false = holstered).
 var melee_drawn: bool = false
-## Always null until M4.
-var firearm: ItemData = null
+var firearm: FirearmData = null
+## The firearm is in hand (false = holstered). Never together with [member melee_drawn].
+var firearm_drawn: bool = false
+## Rounds in the firearm's magazine.
+var firearm_rounds: int = 0
 ## Fixed size ([member pocket_slots]); empty slots are null.
 var pockets: Array[ItemData] = []
 
@@ -77,6 +91,10 @@ func _ready() -> void:
 	cash = maxi(start_cash, 0)
 	for item in start_items:
 		add_item(item)
+	if start_firearm != null:
+		firearm = start_firearm
+		firearm_rounds = start_firearm.magazine_size
+		firearm_drawn = start_melee == null
 	if start_melee != null:
 		melee = start_melee
 		melee_drawn = true
@@ -90,7 +108,50 @@ func _ready() -> void:
 
 ## Weapon in hand, or null (fists).
 func get_held_weapon() -> WeaponData:
+	if firearm_drawn:
+		return firearm
 	return melee if melee_drawn else null
+
+
+func get_hand() -> Hand:
+	if firearm_drawn:
+		return Hand.FIREARM
+	return Hand.MELEE if melee_drawn else Hand.NONE
+
+
+## True if [param hand] can be drawn (unarmed always can).
+func has_hand(hand: Hand) -> bool:
+	match hand:
+		Hand.MELEE:
+			return melee != null
+		Hand.FIREARM:
+			return firearm != null
+	return true
+
+
+## Puts [param hand] in hand and holsters the rest. Returns false if that
+## slot is empty.
+func draw(hand: Hand) -> bool:
+	if not has_hand(hand):
+		return false
+	if hand == get_hand():
+		return true
+	melee_drawn = hand == Hand.MELEE
+	firearm_drawn = hand == Hand.FIREARM
+	_sync_combat()
+	changed.emit()
+	return true
+
+
+## Next carried hand in the order unarmed -> melee -> firearm ([param step] = 1)
+## or backwards (-1).
+func get_next_hand(step: int = 1) -> Hand:
+	var hand := get_hand()
+	for i in Hand.size():
+		hand = posmod(hand + step, Hand.size()) as Hand
+		if has_hand(hand):
+			return hand
+	return get_hand()
 
 
 ## Every carried item (melee, firearm, pockets), in slot order.
@@ -129,11 +190,17 @@ func add_item(item: ItemData) -> bool:
 				return false
 			melee = item as WeaponData
 			melee_drawn = true
+			firearm_drawn = false
 			_sync_combat()
 		ItemData.Slot.FIREARM:
 			if not firearm_slot_active or firearm != null:
 				return false
-			firearm = item
+			firearm = item as FirearmData
+			firearm_rounds = firearm.magazine_size
+			# A new weapon ends up in hand, like a melee pickup.
+			melee_drawn = false
+			firearm_drawn = true
+			_sync_combat()
 		_:
 			var index := pockets.find(null)
 			if index < 0:
@@ -143,14 +210,22 @@ func add_item(item: ItemData) -> bool:
 	return true
 
 
-## Takes a weapon from the world: the current melee weapon is dropped first,
-## the new one ends up in hand.
-func pick_up_weapon(weapon: WeaponData) -> bool:
+## Takes a weapon from the world: the weapon in the same slot is dropped
+## first, the new one ends up in hand. A firearm comes with [param rounds] in
+## its magazine (-1 = full).
+func pick_up_weapon(weapon: WeaponData, rounds: int = -1) -> bool:
 	if weapon == null:
 		return false
-	if melee != null:
-		drop_melee()
-	return add_item(weapon)
+	var slot := Hand.FIREARM if weapon is FirearmData else Hand.MELEE
+	if slot == Hand.FIREARM and not firearm_slot_active:
+		return false
+	if (slot == Hand.MELEE and melee != null) or (slot == Hand.FIREARM and firearm != null):
+		drop_weapon(slot)
+	if not add_item(weapon):
+		return false
+	if slot == Hand.FIREARM and rounds >= 0:
+		set_firearm_rounds(rounds)
+	return true
 
 
 ## Removes one [param item] without dropping it. Returns false if not carried.
@@ -163,6 +238,9 @@ func remove_item(item: ItemData) -> bool:
 		_sync_combat()
 	elif item == firearm:
 		firearm = null
+		firearm_drawn = false
+		firearm_rounds = 0
+		_sync_combat()
 	else:
 		var index := pockets.find(item)
 		if index < 0:
@@ -191,41 +269,30 @@ func take_cash(amount: int = -1) -> int:
 	return taken
 
 
-func draw_melee() -> void:
-	if melee == null or melee_drawn:
+## Sets the rounds in the firearm's magazine (clamped to its size).
+func set_firearm_rounds(rounds: int) -> void:
+	if firearm == null:
 		return
-	melee_drawn = true
-	_sync_combat()
+	firearm_rounds = clampi(rounds, 0, firearm.magazine_size)
 	changed.emit()
 
 
-func holster_melee() -> void:
-	if melee == null or not melee_drawn:
-		return
-	melee_drawn = false
-	_sync_combat()
-	changed.emit()
-
-
-func toggle_melee() -> void:
-	if melee_drawn:
-		holster_melee()
-	else:
-		draw_melee()
-
-
-## Drops the melee weapon (drawn or holstered) as a world pickup and returns
-## the pickup (null if the weapon has none, e.g. fists).
-func drop_melee() -> Node3D:
-	if melee == null:
+## Drops the weapon of [param slot] (melee or firearm, drawn or holstered) as
+## a world pickup and returns the pickup (null if there is none). A dropped
+## firearm keeps the rounds in its magazine.
+func drop_weapon(slot: Hand) -> Node3D:
+	var dropped: WeaponData = firearm if slot == Hand.FIREARM else melee
+	if slot == Hand.NONE or dropped == null:
 		return null
-	var dropped := melee
+	var rounds := firearm_rounds if slot == Hand.FIREARM else -1
 	remove_item(dropped)
 	if dropped.pickup_scene == null or not is_inside_tree():
 		return null
 	var pickup := dropped.pickup_scene.instantiate() as Node3D
 	if &"weapon" in pickup:
 		pickup.set(&"weapon", dropped)
+	if &"rounds" in pickup:
+		pickup.set(&"rounds", rounds)
 	var spawn := drop_origin.global_transform.orthonormalized()
 	get_tree().current_scene.add_child(pickup)
 	pickup.global_transform = spawn
@@ -238,10 +305,12 @@ func drop_melee() -> Node3D:
 	return pickup
 
 
-## Removes the melee weapon without dropping it (fight restart).
-func clear_melee() -> void:
+## Removes both weapons without dropping them (fight restart).
+func clear_weapons() -> void:
 	if melee != null:
 		remove_item(melee)
+	if firearm != null:
+		remove_item(firearm)
 
 
 ## Empties every slot and the wallet.
@@ -249,6 +318,8 @@ func clear() -> void:
 	melee = null
 	melee_drawn = false
 	firearm = null
+	firearm_drawn = false
+	firearm_rounds = 0
 	pockets.fill(null)
 	var had := cash
 	cash = 0
@@ -294,4 +365,5 @@ func _sync_combat() -> void:
 
 func _on_down(_victim: Node3D, _by: Node3D) -> void:
 	if drop_on_down:
-		drop_melee()
+		drop_weapon(Hand.MELEE)
+		drop_weapon(Hand.FIREARM)

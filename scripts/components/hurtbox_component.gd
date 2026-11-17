@@ -36,6 +36,10 @@ var follow: Node3D = null:
 		if follow == null:
 			position = Vector3.ZERO
 
+var _capsule: CapsuleShape3D = null
+var _stand_height: float = 0.0
+var _stand_y: float = 0.0
+
 
 func _ready() -> void:
 	if body == null:
@@ -56,16 +60,42 @@ func _physics_process(_delta: float) -> void:
 	global_position = Vector3(point.x, body.global_position.y, point.z)
 
 
+## Shrinks the capsule to [param height] (crouching, M4b: low cover hides the
+## body from shots), keeping its bottom where it is. A height <= 0 restores
+## the scene's capsule.
+func set_height(height: float) -> void:
+	var collision := _get_collision()
+	if collision == null or not collision.shape is CapsuleShape3D:
+		return
+	if _capsule == null:
+		# Own copy: the scene's shape resource is shared between instances.
+		_capsule = (collision.shape as CapsuleShape3D).duplicate()
+		_stand_height = _capsule.height
+		_stand_y = collision.position.y
+		collision.shape = _capsule
+	var target := _stand_height if height <= 0.0 else minf(height, _stand_height)
+	_capsule.height = target
+	collision.position.y = _stand_y - (_stand_height - target) * 0.5
+
+
+## Current capsule height (the scene's when never changed).
+func get_height() -> float:
+	if _capsule != null:
+		return _capsule.height
+	var collision := _get_collision()
+	if collision != null and collision.shape is CapsuleShape3D:
+		return (collision.shape as CapsuleShape3D).height
+	return 0.0
+
+
 func can_be_hit() -> bool:
 	return enabled and (health == null or health.can_take_damage())
 
 
 ## Point used for line-of-sight checks (centre of the shape).
 func get_center() -> Vector3:
-	for child in get_children():
-		if child is CollisionShape3D:
-			return (child as CollisionShape3D).global_position
-	return global_position
+	var collision := _get_collision()
+	return collision.global_position if collision != null else global_position
 
 
 func receive_hit(attacker: Node3D, attack: AttackData, direction: Vector3) -> HitResult:
@@ -82,3 +112,10 @@ func receive_hit(attacker: Node3D, attack: AttackData, direction: Vector3) -> Hi
 	if was_down:
 		return HitResult.DOWNED_HIT
 	return HitResult.KNOCKED_OUT if health.is_knocked_out() else HitResult.HIT
+
+
+func _get_collision() -> CollisionShape3D:
+	for child in get_children():
+		if child is CollisionShape3D:
+			return child
+	return null

@@ -1,6 +1,8 @@
 class_name WeaponData
 extends ItemData
-## A melee weapon (fists count as one). Instances live in res://data/items/.
+## A weapon (fists count as one). Instances live in res://data/items/.
+## Melee weapons go in the melee slot; [FirearmData] (M4b) extends this for
+## the firearm slot.
 ##
 ## [member pickup_scene] must not reference this resource itself (that would be
 ## a cyclic load); whoever spawns the pickup assigns the weapon to it.
@@ -18,6 +20,9 @@ extends ItemData
 @export var held_scene: PackedScene
 ## World pickup spawned when dropped. Empty = cannot be dropped (fists).
 @export var pickup_scene: PackedScene
+## Light hit reactions while this weapon is in hand (e.g. a rifle flinch).
+## Empty = the character's own [member MeleeCombat.flinch_clips].
+@export var flinch_clips: Array[StringName] = []
 
 
 func get_slot() -> ItemData.Slot:

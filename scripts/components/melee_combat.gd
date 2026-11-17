@@ -12,8 +12,14 @@ extends Node
 ## to its animator.
 ##
 ## Combat knows nothing about crime: it reports [signal hit_landed] here and
-## knockouts and deaths on the [HealthComponent]; the M3b CrimeManager listens
-## to those.
+## knockouts and deaths on the [HealthComponent]; the M5a CrimeManager listens
+## to those. Firearms (M4b) report through here too: the character's
+## [RangedCombat] calls [method report_shot] ([signal shot_fired], and
+## [signal hit_landed] for a shot that landed), so every combat event of a
+## character comes from its MeleeCombat (the "combatants" group).
+##
+## With a firearm in hand ([FirearmData]) there are no melee attacks (its
+## combo is empty): the controller fires through [RangedCombat] instead.
 ##
 ## Combat doesn't own weapons: it fights with whatever [method set_weapon]
 ## put in hand. The [InventoryComponent] owns, holsters and drops them.
@@ -40,6 +46,8 @@ signal hit_taken(attacker: Node3D, attack: AttackData, result: HurtboxComponent.
 signal clip_requested(clip: StringName, speed: float, hold: bool)
 signal clip_stopped
 signal weapon_changed(weapon: WeaponData)
+## This character fired a shot (M4b; hit or miss). For the M5a CrimeManager.
+signal shot_fired(shooter: Node3D, weapon: WeaponData)
 
 enum State { IDLE, ATTACK, GUARD, DODGE, REACTION, KNOCKDOWN, KNOCKED_OUT, DEAD }
 enum Phase { NONE, WINDUP, ACTIVE, RECOVERY }
@@ -196,6 +204,19 @@ var last_hit_impulse: Vector3 = Vector3.ZERO
 var clip_source: Object = null
 ## Phase lengths of the current attack.
 var timing: AttackTiming = AttackTiming.new()
+## The firearm in hand, or null.
+var firearm: FirearmData:
+	get:
+		return weapon as FirearmData
+## Visual of the held weapon (null for fists), e.g. to find a muzzle.
+var held_visual: Node3D = null
+## [member state] / [member phase] as text (debug readouts).
+var state_name: String:
+	get:
+		return State.keys()[state]
+var phase_name: String:
+	get:
+		return Phase.keys()[phase]
 
 var _state_time: float = 0.0
 var _phase_time: float = 0.0
@@ -216,7 +237,6 @@ var _knockdown_fall_time: float = 0.0
 var _get_up_time: float = 0.0
 var _warned_clips: Dictionary = {}
 var _look_yaw: float = 0.0
-var _held_visual: Node3D = null
 
 
 func _ready() -> void:
@@ -314,7 +334,9 @@ func receive_hit(
 	flat = flat.normalized() if flat.length_squared() > 0.0001 else -_get_facing()
 	var impulse := (flat + Vector3.UP * hit_attack.knockback_lift) * hit_attack.knockback
 
-	var guarded := state == State.GUARD and _is_facing(attacker.global_position)
+	var guarded := (
+		state == State.GUARD and hit_attack.can_be_blocked and _is_facing(attacker.global_position)
+	)
 	if guarded and not hit_attack.breaks_guard:
 		_knockback(impulse * block_knockback_scale)
 		_block_timer = block_stun
@@ -341,7 +363,8 @@ func receive_hit(
 	if state != State.KNOCKDOWN:
 		match hit_attack.reaction:
 			AttackData.Reaction.FLINCH:
-				_enter_reaction(flinch_clips, flinch_speed)
+				var clips := get_weapon().flinch_clips
+				_enter_reaction(clips if not clips.is_empty() else flinch_clips, flinch_speed)
 			AttackData.Reaction.STAGGER:
 				_enter_reaction(stagger_clips, stagger_speed)
 			AttackData.Reaction.KNOCKDOWN:
@@ -379,6 +402,26 @@ func reset() -> void:
 
 func get_weapon() -> WeaponData:
 	return weapon if weapon != null else unarmed
+
+
+## Free to do something else (fire, reload, switch weapons): idle or guarding.
+func is_free() -> bool:
+	return state == State.IDLE or state == State.GUARD
+
+
+## A weapon switch may happen now: free, or an attack past its hit (recovery).
+## Never mid-swing, mid-reaction, mid-dodge or down.
+func can_switch_weapon() -> bool:
+	return is_free() or (state == State.ATTACK and phase == Phase.RECOVERY)
+
+
+## Reports a shot of this character's [RangedCombat] ([signal shot_fired]);
+## a shot that landed on [param victim] is also a hit ([signal hit_landed]),
+## like a melee hit.
+func report_shot(gun: WeaponData, victim: Node3D = null, hit_attack: AttackData = null) -> void:
+	if victim != null and hit_attack != null:
+		hit_landed.emit(body, victim, hit_attack)
+	shot_fired.emit(body, gun)
 
 
 func is_guarding() -> bool:
@@ -465,14 +508,6 @@ func get_reaction_time(clip: StringName, speed: float, marker: StringName) -> fl
 	if at <= 0.0 or speed <= 0.0:
 		return fallback_reaction_time
 	return at / speed
-
-
-func get_state_name() -> String:
-	return State.keys()[state]
-
-
-func get_phase_name() -> String:
-	return Phase.keys()[phase]
 
 
 func _tick_timers(delta: float) -> void:
@@ -862,15 +897,15 @@ func _flat_to(point: Vector3) -> Vector3:
 
 
 func _update_held_visual() -> void:
-	if _held_visual != null:
-		if _held_visual.get_parent() != null:
-			_held_visual.get_parent().remove_child(_held_visual)
-		_held_visual.queue_free()
-		_held_visual = null
+	if held_visual != null:
+		if held_visual.get_parent() != null:
+			held_visual.get_parent().remove_child(held_visual)
+		held_visual.queue_free()
+		held_visual = null
 	var held := get_weapon().held_scene
 	if held != null and weapon_socket != null:
-		_held_visual = held.instantiate() as Node3D
-		weapon_socket.add_child(_held_visual)
+		held_visual = held.instantiate() as Node3D
+		weapon_socket.add_child(held_visual)
 
 
 func _clip_marker(clip: StringName, marker: StringName) -> float:

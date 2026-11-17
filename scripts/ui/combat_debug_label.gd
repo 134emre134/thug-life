@@ -18,10 +18,10 @@ func _process(_delta: float) -> void:
 	if not visible:
 		return
 	var lines := PackedStringArray(
-		["HP %d/%d" % [ceili(health.health), ceili(health.max_health)], combat.get_state_name()]
+		["HP %d/%d" % [ceili(health.health), ceili(health.max_health)], combat.state_name]
 	)
 	if combat.attack != null:
-		lines.append("%s %s" % [combat.attack.id, combat.get_phase_name()])
+		lines.append("%s %s" % [combat.attack.id, combat.phase_name])
 	if ai != null and not ai.get_debug_text().is_empty():
 		lines.append(ai.get_debug_text())
 	text = "\n".join(lines)

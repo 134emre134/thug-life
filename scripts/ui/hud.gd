@@ -1,8 +1,10 @@
 extends CanvasLayer
-## Player HUD (GDD §13): cash, health bar, held weapon, soft-target marker,
-## crosshair, line-of-fire blocked marker, interaction prompt with hold
-## progress, notifications, an inventory overlay (toggle_inventory) and a
-## debug readout (debug_toggle; also shows the floating combat labels on NPCs).
+## Player HUD (GDD §13): cash, health bar, held weapon, ammo (magazine and
+## spare magazines, M4b), soft-target marker, crosshair (while aiming), hit
+## marker for landed shots, line-of-fire blocked marker, interaction prompt
+## with hold progress, notifications, an inventory overlay (toggle_inventory)
+## and a debug readout (debug_toggle; also shows the floating combat labels
+## on NPCs).
 ##
 ## The inventory overlay pauses the game while it is open (M4a.6, GDD §12:
 ## decided as temporary, revisit with crime and pursuits in M5). The HUD keeps
@@ -16,9 +18,14 @@ extends CanvasLayer
 @export var cash_loss_color: Color = Color(1.0, 0.4, 0.35)
 ## Pause the game while the inventory overlay is open (temporary, M4a.6).
 @export var inventory_pauses_game: bool = true
+## Seconds the hit marker shows after a landed shot.
+@export var hit_marker_time: float = 0.15
+@export var hit_marker_color: Color = Color(1.0, 1.0, 1.0, 0.95)
+@export var kill_marker_color: Color = Color(1.0, 0.3, 0.25, 1.0)
 
 var _notify_tween: Tween
 var _cash_tween: Tween
+var _hit_marker_timer: float = 0.0
 
 @onready var _crosshair: Control = $Crosshair
 @onready var _blocked_marker: Control = $BlockedMarker
@@ -27,6 +34,8 @@ var _cash_tween: Tween
 @onready var _debug: Label = $Debug
 @onready var _health_bar: ProgressBar = $HealthBar
 @onready var _weapon_label: Label = $HealthBar/Weapon
+@onready var _ammo_label: Label = $HealthBar/Ammo
+@onready var _hit_marker: Label = $HitMarker
 @onready var _target_marker: Label = $TargetMarker
 @onready var _cash: Label = $Cash
 @onready var _hold_bar: ProgressBar = $Prompt/HoldBar
@@ -44,6 +53,7 @@ func _ready() -> void:
 	_target_marker.visible = false
 	_hold_bar.visible = false
 	_inventory_panel.visible = false
+	_hit_marker.visible = false
 	CombatDebugLabel.shown = false
 	Events.notification_requested.connect(_on_notification)
 	if player == null:
@@ -55,6 +65,9 @@ func _ready() -> void:
 		player.interaction.hold_progress_changed.connect(_on_hold_progress)
 		player.inventory.changed.connect(_refresh_inventory)
 		player.inventory.cash_changed.connect(_on_cash_changed)
+		player.ranged.reload_started.connect(_refresh_inventory)
+		player.ranged.reload_finished.connect(_refresh_inventory)
+		player.ranged.hit_confirmed.connect(_on_hit_confirmed)
 		_on_health_changed(player.health.health, player.health.max_health)
 		_refresh_inventory()
 
@@ -83,9 +96,12 @@ func is_inventory_open() -> bool:
 	return _inventory_panel.visible
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if player == null:
 		return
+	if _hit_marker_timer > 0.0:
+		_hit_marker_timer -= delta
+		_hit_marker.visible = _hit_marker_timer > 0.0
 	_update_blocked_marker()
 	_update_target_marker()
 	var target := player.interaction.current_target
@@ -140,19 +156,33 @@ func _on_cash_changed(_cash_now: int, delta: int) -> void:
 func _refresh_inventory() -> void:
 	var inventory := player.inventory
 	_cash.text = "$%d" % inventory.cash
-	if inventory.melee == null:
-		_weapon_label.text = "Fists"
-	elif inventory.melee_drawn:
-		_weapon_label.text = inventory.melee.display_name
-	else:
-		_weapon_label.text = "Fists (%s holstered)" % inventory.melee.display_name
+	var held := inventory.get_held_weapon()
+	var holstered := PackedStringArray()
+	for weapon: WeaponData in [inventory.melee, inventory.firearm]:
+		if weapon != null and weapon != held:
+			holstered.append(weapon.display_name)
+	_weapon_label.text = held.display_name if held != null else "Fists"
+	if not holstered.is_empty():
+		_weapon_label.text += " (%s holstered)" % ", ".join(holstered)
+	_ammo_label.text = _ammo_text()
 	var lines := PackedStringArray(["INVENTORY", "Cash: $%d" % inventory.cash, ""])
 	var melee := "-"
 	if inventory.melee != null:
-		var held := "in hand" if inventory.melee_drawn else "holstered"
-		melee = "%s (%s)" % [inventory.melee.display_name, held]
+		var melee_state := "in hand" if inventory.melee_drawn else "holstered"
+		melee = "%s (%s)" % [inventory.melee.display_name, melee_state]
 	lines.append("Melee: %s" % melee)
-	var firearm := "-" if inventory.firearm == null else inventory.firearm.display_name
+	var firearm := "-"
+	if inventory.firearm != null:
+		var firearm_state := "in hand" if inventory.firearm_drawn else "holstered"
+		firearm = (
+			"%s (%s, %d/%d)"
+			% [
+				inventory.firearm.display_name,
+				firearm_state,
+				inventory.firearm_rounds,
+				inventory.firearm.magazine_size
+			]
+		)
 	if not inventory.firearm_slot_active:
 		firearm = "(locked)"
 	lines.append("Firearm: %s" % firearm)
@@ -163,7 +193,37 @@ func _refresh_inventory() -> void:
 	lines.append(
 		"[%s] holster  [%s] drop" % [_action_key(&"holster_weapon"), _action_key(&"drop_weapon")]
 	)
+	lines.append(
+		(
+			"[%s/%s/%s, wheel] switch  [%s] reload"
+			% [
+				_action_key(&"weapon_unarmed"),
+				_action_key(&"weapon_melee"),
+				_action_key(&"weapon_firearm"),
+				_action_key(&"reload")
+			]
+		)
+	)
 	_inventory_text.text = "\n".join(lines)
+
+
+## "5 / 8  +2" for the drawn firearm (rounds / magazine, spare magazines).
+func _ammo_text() -> String:
+	var inventory := player.inventory
+	var firearm := inventory.firearm if inventory.firearm_drawn else null
+	if firearm == null:
+		return ""
+	if player.ranged.is_reloading:
+		return "reloading..."
+	var text := "%d / %d" % [inventory.firearm_rounds, firearm.magazine_size]
+	return text + "  +%d" % player.ranged.get_magazine_count()
+
+
+func _on_hit_confirmed(victim: Node3D, result: HurtboxComponent.HitResult) -> void:
+	var killed := result == HurtboxComponent.HitResult.KILLED
+	_hit_marker.modulate = kill_marker_color if killed else hit_marker_color
+	_hit_marker.visible = victim != null
+	_hit_marker_timer = hit_marker_time
 
 
 func _on_target_changed(target: Interactable) -> void:
@@ -192,6 +252,11 @@ func _update_debug() -> void:
 			"Knockback: %s" % m.is_knocked_back(),
 			"Aiming: %s" % player.aim.is_aiming,
 			(
+				"Ranged: raised %s  reloading %s  shots %d"
+				% [player.ranged.is_raised(), player.ranged.is_reloading, player.ranged.shots_fired]
+			),
+			"Cover: %s" % CoverComponent.Height.keys()[player.cover.height],
+			(
 				"Aim point: %s (%.1f m)"
 				% [
 					player.aim.aim_point.snapped(Vector3.ONE * 0.01),
@@ -212,7 +277,7 @@ func _combat_debug_lines() -> PackedStringArray:
 		[
 			"--- Combat ---",
 			"Health: %d / %d" % [ceili(player.health.health), ceili(player.health.max_health)],
-			"State: %s  Phase: %s" % [c.get_state_name(), c.get_phase_name()],
+			"State: %s  Phase: %s" % [c.state_name, c.phase_name],
 			"Attack: %s  Combo: %d" % [String(c.attack.id) if c.attack else "-", c.combo_index + 1],
 			"Weapon: %s" % c.get_weapon().display_name,
 			"Target: %s" % (String(c.current_target.body.name) if c.current_target else "-"),
@@ -223,6 +288,7 @@ func _combat_debug_lines() -> PackedStringArray:
 	var director := get_tree().get_first_node_in_group(&"combat_director") as CombatDirector
 	if director != null:
 		lines.append("Attackers: %d / %d" % [director.get_attacker_count(), director.max_attackers])
+		lines.append("Shooters: %d / %d" % [director.get_shooter_count(), director.max_shooters])
 	return lines
 
 

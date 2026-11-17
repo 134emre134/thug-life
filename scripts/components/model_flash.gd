@@ -29,6 +29,12 @@ func _process(delta: float) -> void:
 			_apply()
 
 
+## Overlays are removed before the meshes go (a mesh freed with an overlay
+## still set makes the renderer complain).
+func _exit_tree() -> void:
+	clear()
+
+
 func flash_hit(heavy: bool = false) -> void:
 	_hit_material.albedo_color = heavy_hit_color if heavy else hit_color
 	_hit_timer = hit_time
@@ -61,8 +67,12 @@ func _apply() -> void:
 			mesh.material_overlay = overlay
 
 
+## The character's own meshes; held weapons (under bone attachments) come
+## and go and are left alone.
 func _collect(node: Node) -> void:
 	for child in node.get_children():
+		if child is BoneAttachment3D:
+			continue
 		if child is GeometryInstance3D:
 			_meshes.append(child)
 		_collect(child)
