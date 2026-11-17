@@ -36,7 +36,7 @@ Over-the-shoulder 3D is the expensive option; scope is controlled through world 
 
 ## 5. Core Loop [Open]
 
-_What does a typical 10-minute session look like?_ — **must be defined before M3b (District & first crime).** The M2 melee prototype and M3a (inventory, loot & lethality) are built in the combat arena and don't depend on it.
+_What does a typical 10-minute session look like?_ — **must be defined before M5a (Crime fundamentals).** M3b (district), M4a (combat update) and M4b (firearms) don't depend on it.
 
 ## 6. Progression & Criminal Hierarchy [Open]
 
@@ -47,40 +47,45 @@ _What does a typical 10-minute session look like?_ — **must be defined before 
 ## 7. Combat
 
 ### Direction [Decided]
-- **Melee first.** Fists and melee weapons are the fundamental problem-solving verb in this non-dialogue-heavy game. They get built and tuned before firearms (see §19: M2 melee, M4 firearms).
+- **Melee first.** Fists and melee weapons are the fundamental problem-solving verb in this non-dialogue-heavy game. They get built and tuned before firearms (see §19: M2 melee, M4a combat update, M4b firearms).
 
 ### Melee model [Proposal]
 - **Readable, committal, physical** — closer to Sleeping Dogs than to a button-mashing brawler: every attack has a windup, active and recovery phase; hits land with hit stop, camera shake and a visible reaction.
 - **Soft targeting, no hard lock-on:** attacks snap/lunge toward the best target in a cone in front of the camera (magnetism). The camera stays free.
-- **Move set (player):** light attack combo (up to 3 hits) · heavy attack (hold) that breaks guard · guard (hold) · dodge/sidestep · weapon pickup and drop
+- **Move set (player):** light attack combo (up to 3 hits) · heavy attack (hold) that breaks guard · guard (hold) · dodge/sidestep · weapon pickup and drop · **stomp** on a downed opponent (M4a) · **crouch** (M4a)
 - **Guard stance replaces aim mode while unarmed or holding a melee weapon:** same strafing/facing behaviour as M1.4 (reuses the strafe blend space), but blocks instead of aiming
 - **No stamina** in the first version; guard is limited by guard break (heavy attacks) instead
 - **Hit reactions** by severity: flinch (light) → stagger (heavy / combo finisher) → knockdown → knockout (ragdoll)
 - **Group fights:** attack tokens: only 1–2 enemies attack at the same time, the others circle and wait. Required for readability over the shoulder.
+- **[Decided] Attack timing follows the animation:** hit windows come from the clips (markers / method tracks), not from hand-typed numbers (M4a)
 
 ### Lethality
 - **[Decided]** Both knockouts and deaths exist. Outcome depends on the weapon: fists (and blunt weapons) knock out; continuing to hit a knocked-out person kills them. Multiple knife stabs or firearm hits kill.
 - **[Proposal] Damage types:** `AttackData.damage_type` = `blunt` / `blade` / `firearm`
-  - **Blunt:** health 0 → knockout. Hits on a knocked-out body deal downed damage; past a threshold → death. A bat reaches it faster than fists.
+  - **Blunt:** health 0 → knockout. Hits on a knocked-out body deal downed damage; past a threshold → death. A bat reaches it faster than fists; a stomp is the dedicated downed attack.
   - **Blade:** no knockout stop; enough stabs → death.
-  - **Firearm:** lethal (M4).
-- **[Proposal]** `HealthComponent` states: `active` → `knocked_out` → `dead`; knocked-out NPCs recover after a while and can then flee or report the crime (§8)
+  - **Firearm:** lethal (M4b).
+- **[Proposal]** `HealthComponent` states: `active` → `knocked_out` → `dead`; knocked-out NPCs recover after a while and can then flee or (from M5a) report the crime (§8)
 - **[Proposal]** Killing is a separate, more severe crime than assault (§8); dead bodies are lootable (§12)
 - **[Proposal]** Player: arrest remains the default fail state; lethal damage can kill the player → hospital respawn with a cash cost
 - **[Proposal]** First bladed weapon: a knife, together with the lethality implementation (M3a)
 
 ### Weapons [Proposal]
-- First set: **fists** + **one blunt weapon** (bat/pipe) in M2; **knife** in M3a.
+- First set: **fists** + **one blunt weapon** (bat/pipe) in M2; **knife** in M3a; **one firearm** in M4b.
 - Weapons are items (`WeaponData` extends `ItemData`), picked up via the M1.5 interaction, dropped on knockout or death.
 
+### Crouch & cover
+- **[Decided]** Crouch exists (M4a) and cover exists (M4b)
+- **[Proposal] Crouch:** hold/toggle; lower collision shape, ceiling check before standing up, slower movement, crouch blend space; crouching behind low objects breaks line of sight (pays off with witnesses in M5a)
+- **[Proposal] Cover:** sticky cover on a button; cover edges detected via raycasts; peek and aim over/around; works from standing and crouched positions; built with firearms because ranged enemies are what make it testable
+
 ### Still open [Open]
-- **Cover system:** only relevant for firearms; decide before M4.
-- Melee vs. firearms balance (M4).
+- Melee vs. firearms balance (M4b).
 - Stealth takedowns, finishers, environmental attacks (later; must not be designed out).
 
 ## 8. Police & Crime [Proposal]
 
-Early-game focus: the individual player gets hunted for small crimes.
+Early-game focus: the individual player gets hunted for small crimes. **Crime and heat exist from M5a on;** before that, actions have no legal consequences.
 
 ### Core principle: police only know what was reported
 No omniscient wanted level. Every crime passes through a chain the player can interrupt:
@@ -117,12 +122,12 @@ No omniscient wanted level. Every crime passes through a chain the player can in
 
 ### Godot structure
 - `CrimeManager` — receives crime events
-- `WitnessComponent` — on NPCs, perception + reaction
+- `WitnessComponent` — on NPCs, perception + reaction (builds on the M3b civilian panic reaction)
 - `HeatManager` — heat level, search area, decay
 - Crime definitions as `.tres` data (severity, base heat, witness radius)
 - **Sanctioned zones** (e.g. the fight club ring, §16): `CrimeManager` ignores the matching crime types inside them
 
-**First vertical slice:** pickpocketing + heat level 1 (M3b).
+**First vertical slice:** pickpocketing + heat level 1 (M5a).
 
 ## 9. World & Setting
 
@@ -150,12 +155,13 @@ Balancing is open; the sources and sinks below are the current set.
 ## 12. Inventory & Looting
 
 - **[Decided]** Inventory and looting come before the crime milestone (M3a)
-- **[Proposal] Slot-based, no grid:** 1 melee slot · 1 firearm slot (active from M4) · a few pocket slots for small items. A spatial grid would slow down street crime.
+- **[Proposal] Slot-based, no grid:** 1 melee slot · 1 firearm slot (active from M4b) · a few pocket slots for small items. A spatial grid would slow down street crime.
 - **[Proposal] Cash is a wallet value**, not an item; it is shown on the HUD
 - **[Proposal]** `InventoryComponent` is shared by the player and NPCs (NPCs carry what can be stolen from them)
 - **[Proposal]** `LootTable` resources per NPC type in `data/loot/` (cash range, item chances); used by looting **and** pickpocketing
 - **[Proposal] Looting:** a knocked-out or dead body exposes a "Search" `Interactable`; searching is a hold action (the player is exposed while doing it); emits `looted(victim, by)` for the `CrimeManager`
 - **[Proposal]** Weapons still drop physically on knockout or death (M2.6); cash and pocket items are taken by looting
+- **[Decided, temporary]** The inventory overlay pauses the game (M4a). Searching a body stays real-time. Revisit once crime and pursuits exist (M5).
 - Stash storage later, together with buyable places to stay (§15)
 
 ## 13. HUD [Proposal]
@@ -166,27 +172,28 @@ Minimal and readable; elements appear with the milestone that gives them meaning
 |---|---|---|
 | Cash | M3a | Wallet value |
 | Health | M3a | From `HealthComponent` |
-| Equipped weapon | M3a / M4 | Ammo count from M4 |
-| Heat state | M3b | Named states (Suspicion / Pursuit / Manhunt), not stars |
-| Minimap | M3b | Shows the police **search area** around the last known position, **never live police positions** (§8) |
-| Clock | M5 | In-game time and day |
+| Equipped weapon | M3a / M4b | Ammo count from M4b |
+| Minimap | M3b / M5a | M3b: basic navigation map of the district. M5a: adds the police **search area** around the last known position, **never live police positions** (§8) |
+| Heat state | M5a | Named states (Suspicion / Pursuit / Manhunt), not stars |
+| Clock | M5b | In-game time and day |
 
 ## 14. Shops & Interiors
 
 - **[Decided]** Shops have interiors; regular stores exist and can be robbed; shops sell melee weapons and firearms
 - **[Proposal] Seamless interiors:** the few enterable buildings live in the district scene, no loading screens, so fleeing into a shop during a pursuit works with the witness/search systems. All other buildings stay closed.
+- **[Proposal]** Lots for the first shops and the fight club warehouse are reserved in the M3b block-out
 
 ### Shop types [Proposal]
 
 | Shop | Sells | Milestone |
 |---|---|---|
-| General store | Consumables (stock open) | M5, robbable |
-| Melee weapon shop | Bats, pipes, knives | M5 (satire option: a sporting goods store selling bats in a city where nobody plays baseball) |
-| Gun dealer | Firearms, ammo | M5; black-market back room rather than a street shop (fits the European setting); may be rank-gated |
+| General store | Consumables (stock open) | M5b, robbable |
+| Melee weapon shop | Bats, pipes, knives | M5b (satire option: a sporting goods store selling bats in a city where nobody plays baseball) |
+| Gun dealer | Firearms, ammo | M5b; black-market back room rather than a street shop (fits the European setting); may be rank-gated |
 | Clothing store | Outfits | M7 (§17) |
 
 ### Shop robbery [Proposal]
-- First job type of the progression loop (M5)
+- First job type of the progression loop (M5b)
 - Intimidate the shopkeeper (draw/raise a weapon), take the register cash; the shopkeeper and customers are witnesses
 - Heat 2 without a firearm, heat 3 with one (§8)
 - After a robbery the shop is not robbable again for a set number of in-game days (§15)
@@ -212,7 +219,7 @@ Minimal and readable; elements appear with the milestone that gives them meaning
 - **[Proposal] Watching:** NPC vs. NPC fights run on the same components and `CombatDirector`; spectator camera and crowd
 - **[Proposal] Betting:** odds derived from fighter ratings; max bet and bets per night are limited; max bet may scale with rank
 - **[Proposal]** Fighting inside the ring is a sanctioned zone (§8); fight club wins can feed reputation/rank (§6)
-- **[Proposal]** The fight club doubles as the in-game melee balancing test bed; the M2.8 combat arena is its prototype
+- **[Proposal]** The fight club doubles as the in-game melee balancing test bed; the M3b district gym is its prototype
 - **[Postponed]** Rigged fights / throwing a fight for money
 - **[Open]** Police raids
 
@@ -231,9 +238,9 @@ Minimal and readable; elements appear with the milestone that gives them meaning
 - **[Proposal]** The expensive parts are traffic AI and police vehicle pursuits, not the driving itself
 - **[Postponed]** Public transport (needs AI drivers on fixed routes; little gameplay for the cost). If added later: a "BRIX Line" tram as a satire vehicle.
 
-## 19. Milestones [Decided: order M0–M4 and M3a/M3b split · Proposal: M5+ content]
+## 19. Milestones [Decided: order M0–M5b and the M3a/M3b, M4a/M4b, M5a/M5b splits · Proposal: M6+ content]
 
-Rationale: build the gameplay skeleton (movement, aiming, interaction) first, then the core verb: fists and melee weapons are how problems get solved in this game, so their feel has to hit the mark before anything is built on top of them. Inventory, loot and lethality follow so crimes have something to gain and lose. The police/witness system follows and gets real crimes to react to (assault, not only pickpocketing). Firearms are an escalation on top of a working melee system. Vehicles come only once the world outgrows walking.
+Rationale: build the gameplay skeleton (movement, aiming, interaction) first, then the core verb: fists and melee weapons are how problems get solved in this game, so their feel has to hit the mark before anything is built on top of them. Inventory, loot and lethality follow so fights have something to gain and lose. The district then replaces the gray-box levels, so all later work happens in a real street environment. A dedicated combat update polishes animations and feel before firearms are added as an escalation. Crime and heat come only once the district and both weapon types exist, so the police system has real crimes to react to. Vehicles come only once the world outgrows walking.
 
 | # | Milestone | Content |
 |---|-----------|---------|
@@ -241,10 +248,12 @@ Rationale: build the gameplay skeleton (movement, aiming, interaction) first, th
 | M1 | Character skeleton | Locomotion, camera, aim mode, interaction, basic physics, placeholder animation — in a gray-box test level 🔧 (implemented; Mixamo model + playtest tuning pending) |
 | M2 | Melee combat | Fists + one blunt weapon, guard/dodge, hit reactions, knockout ragdolls, one melee enemy type with group behaviour — in a combat arena 🔧 (implemented on placeholder clips; Mixamo swap + playtest tuning pending) |
 | M3a | Inventory, loot & lethality | Slot inventory, wallet, loot tables, looting knocked-out/dead NPCs, damage types, death, knife, cash/health/weapon HUD — in the combat arena |
-| — | _Gate_ | _Define Core Loop (§5) before M3b_ |
-| M3b | District & first crime | Block-out district, walking NPCs, pickpocketing → witness → report → heat level 1, heat HUD + minimap (search area), arrest confiscates cash/items |
-| M4 | Firearms | One firearm, firearm slot, ammo as item, weapon switching, cover decision (§7), ranged enemy behaviour, firearm use → heat |
-| M5 | First progression loop | Shop robbery as the job type, heat level 2, first seamless interiors, general store + melee shop + gun dealer, `WorldClock` with reset timers, HUD clock and bench waiting, first rank-up |
+| M3b | District | Gray-box Brickhaven block-out with lots reserved for M5 buildings, combat gym inside the district, walking civilians that panic and can be fought/knocked out/looted, thug spawns, basic minimap — no police, no crime, no cars |
+| M4a | Combat update | Animation pass, attack timing driven by clips, combat feel tuning, crouch, stomp on downed opponents, inventory pauses the game |
+| M4b | Firearms | One firearm, firearm slot, ammo as item, weapon switching, sticky cover, ranged enemy behaviour |
+| — | _Gate_ | _Define Core Loop (§5) before M5a_ |
+| M5a | Crime fundamentals | `CrimeManager`, pickpocketing, witnesses, report, heat level 1, police patrol, arrest, firearm use → heat, heat HUD + search area on the minimap |
+| M5b | First progression loop | Shop robbery as the job type, heat level 2, first seamless interiors, general store + melee shop + gun dealer, `WorldClock` with reset timers, HUD clock and bench waiting, first rank-up |
 | M6 | Nightlife | Day/night lighting cycle, fight club (fight, watch, bet), daily limits, night-time NPC density |
 | M7 | Identity & customization | Modular outfits, clothing store, description tags → police search, criminal-record recognition |
 | M8 | Second district & cars | World expansion, car driving, car theft → heat 2, basic traffic |
@@ -270,7 +279,7 @@ Tasks are listed in implementation order. Each one is done when it works in the 
 - All inputs go through the InputMap; no hardcoded keys
 - Components stay separate (movement, camera, aim, interaction) instead of one large player script
 
-**Out of scope for M1:** firing weapons, melee, ragdolls, hit reactions, crouch/cover (cover is still open, see §7), vehicles.
+**Out of scope for M1:** firing weapons, melee, ragdolls, hit reactions, crouch (M4a), cover (M4b), vehicles.
 
 ### M2 — Melee combat [Proposal: details]
 
@@ -290,12 +299,12 @@ Goal: one-on-one and one-against-three fights with fists and a bat feel weighty 
 **Applies to the whole milestone:**
 - Same rules as M1: tuning values in `@export`s or resources, inputs via InputMap, separate components
 - New inputs: `attack_light`, `attack_heavy` (may share a button with hold detection), `guard`, `dodge`. Proposed default: LMB attack (hold = heavy), RMB guard (replaces aim while unarmed/melee), dodge = jump key while guarding. Final bindings are decided in playtest
-- Combat emits signals (`hit_landed(attacker, victim, attack)`, `knocked_out(victim, by)`) so the M3b `CrimeManager` can turn them into assault crime events without changing combat code
+- Combat emits signals (`hit_landed(attacker, victim, attack)`, `knocked_out(victim, by)`) so the M5a `CrimeManager` can turn them into assault crime events without changing combat code
 - Player, enemies and later civilians/police share the same health, hurtbox and combat components
 - The character keeps a standard humanoid skeleton (Mixamo rig) so modular customization (§17) works later without redoing animations
 - `HealthComponent` uses a state field (not a bool) and `AttackData` gets a `damage_type` field (default `blunt`), so death and blades (M3a) can be added without refactoring
 
-**Out of scope for M2:** firearms, death/lethal outcomes (implemented in M3a, §7), crime/heat integration (M3b), inventory/looting (M3a), stealth takedowns, finishers, stamina, skills/perks, bladed weapons, more than one enemy type.
+**Out of scope for M2:** firearms, death/lethal outcomes (implemented in M3a, §7), crime/heat integration (M5a), inventory/looting (M3a), stealth takedowns, finishers, stamina, skills/perks, bladed weapons, more than one enemy type.
 
 #### M2 implementation notes [Proposal: awaiting playtest]
 
@@ -324,7 +333,7 @@ Built and tested in the combat arena; moves into the district with M3b.
 
 | Task | Content | Done when |
 |---|---|---|
-| M3a.1 Inventory | `InventoryComponent` on player and NPCs: melee slot, firearm slot (inactive until M4), pocket slots, wallet; equip/drop; the M2.6 bat goes into the melee slot | Bat can be picked up, equipped, unequipped and dropped through the inventory, no special-case code |
+| M3a.1 Inventory | `InventoryComponent` on player and NPCs: melee slot, firearm slot (inactive until M4b), pocket slots, wallet; equip/drop; the M2.6 bat goes into the melee slot | Bat can be picked up, equipped, unequipped and dropped through the inventory, no special-case code |
 | M3a.2 Loot tables | `LootTable` resources in `data/loot/` (cash range, item chances); assigned per NPC type; rolled into the NPC's inventory on spawn | Two NPC types carry different loot, defined only in `.tres` files |
 | M3a.3 Lethality | `dead` state in `HealthComponent`; damage types; downed damage on knocked-out bodies; knockout recovery timer; knife as `WeaponData` with blade `AttackData`; `killed(victim, by)` signal | Punching a downed thug long enough kills him; a few knife stabs kill; an untouched knocked-out thug gets back up |
 | M3a.4 Looting | Knocked-out or dead body exposes a "Search" `Interactable` (hold action); transfers cash and items; emits `looted(victim, by)` | KO or kill a thug, search the body, cash and items move to the player |
@@ -334,13 +343,13 @@ Built and tested in the combat arena; moves into the district with M3b.
 
 What was built, and where it deviates from the table above. All numbers are starting values in `.tres`/`@export`s, to be tuned in playtest.
 
-- **Inventory (M3a.1):** `InventoryComponent` on player and NPCs: melee slot, firearm slot (present but locked until M4), 4 pocket slots, wallet. The inventory owns weapons; `MeleeCombat` only fights with what is put in hand. The melee weapon is **drawn** (in hand) or **holstered** (carried, fists in use). Picking up a weapon while carrying one drops the old one (swap). Weapons only go in the melee slot, everything else in pockets. **Added bindings:** H = holster/draw, Tab = inventory overlay. G still drops (also a holstered weapon).
+- **Inventory (M3a.1):** `InventoryComponent` on player and NPCs: melee slot, firearm slot (present but locked until M4b), 4 pocket slots, wallet. The inventory owns weapons; `MeleeCombat` only fights with what is put in hand. The melee weapon is **drawn** (in hand) or **holstered** (carried, fists in use). Picking up a weapon while carrying one drops the old one (swap). Weapons only go in the melee slot, everything else in pockets. **Added bindings:** H = holster/draw, Tab = inventory overlay. G still drops (also a holstered weapon).
 - **Loot tables (M3a.2):** `LootTable` (cash range, cash chance, entries with a chance each, optional item cap) rolled into the NPC's inventory on spawn. Two types: **thug** ($5–30, lighter 60%, phone 30%) and **collector** (a loan shark's debt collector: $80–160, collection ledger 100%, wristwatch 70%, phone 50%, 120 HP, blue tint). The 1 vs 3 fight is two thugs and a collector.
-  - **Deviation — NPC types are scene variants, not Resources** (`scenes/npc/collector.tscn` inherits `thug.tscn` and overrides the loot table, health and tint). CLAUDE.md rule 5 asks for NPC types as Resources; an `NpcTypeData` resource can replace the variants once NPC types carry more than loot and stats (M3b walkers).
+  - **Deviation — NPC types are scene variants, not Resources** (`scenes/npc/collector.tscn` inherits `thug.tscn` and overrides the loot table, health and tint). CLAUDE.md rule 5 asks for NPC types as Resources; an `NpcTypeData` resource can replace the variants once NPC types carry more than loot and stats (M3b civilians).
 - **Lethality (M3a.3):** `HealthComponent` states `ACTIVE` → `KNOCKED_OUT` → `DEAD`. Blunt damage at 0 HP knocks out; blade (and later firearm) damage at 0 HP kills straight away. A knocked-out body has 40 points of **downed health**; downed damage is scaled by type (blunt ×1, blade ×2, firearm ×4), so fists need about 5 hits and the bat 3. An untouched knocked-out thug gets up after **12 s** with 30% health (every downed hit restarts the timer) and fights again. `killed(victim, by)` on `HealthComponent`; downed hits are still reported as `hit_landed`.
   - **Knife:** `WeaponData` with blade attacks: 2-hit combo 30/30, heavy 45 (breaks guard, staggers), reach 0.85 m. Four light stabs kill a thug. One knife lies in the arena.
-  - **Deviation — no ground attacks.** Hits on a downed body use the normal standing attacks: the knocked-out body's hurtbox follows the ragdoll, so swinging at a body on the floor hits it. Stomps/ground punches come with the Mixamo clips. The knife reuses the punch clips for now.
-  - **Deviation — after recovery the thug fights again** instead of fleeing or reporting (§7 Lethality, §8). Flee/report needs the M3b witness and crime systems.
+  - **Deviation — no ground attacks.** Hits on a downed body use the normal standing attacks: the knocked-out body's hurtbox follows the ragdoll, so swinging at a body on the floor hits it. Stomps come with the M4a combat update (M4a.5). The knife reuses the punch clips for now.
+  - **Deviation — after recovery the thug fights again** instead of fleeing or reporting (§7 Lethality, §8). Fleeing comes with the M3b civilian panic reaction; reporting needs the M5a witness and crime systems.
   - **Player:** a knocked-out player stays down (no recovery timer) and a blade can kill the player ("You died"); both end the fight until F5. Hospital respawn with a cash cost (§7) is not built yet (it needs a world to respawn in). Thugs never attack a downed player, and the player's downed body can't be hit.
 - **Looting (M3a.4):** `BodySearch` on every NPC exposes a "Search" `Interactable` on knocked-out and dead bodies (it follows the ragdoll). Searching is a **1.5 s hold** of E; the player stands still meanwhile, and releasing E, attacking or taking a hit cancels it. Cash and every item that fits move to the player; what doesn't fit (pockets full) stays and the body can be searched again. Emits `looted(victim, by)`. A searched body can't be searched again; a recovering thug resets it. Weapons still drop physically on knockout or death (and are not part of the search).
 - **HUD (M3a.5):** cash (flashes green/red on change), health bar, held weapon ("Fists (Knife holstered)"), hold progress under the interaction prompt ("[E] Search (hold)"), and an inventory overlay (Tab) listing cash, melee (in hand / holstered), firearm (locked) and all pocket slots. The overlay is read-only.
@@ -348,30 +357,70 @@ What was built, and where it deviates from the table above. All numbers are star
 - **Interactions:** `Interactable.hold_time` (0 = instant) makes any interactable a held one; generic item pickups go into the pockets (refused when full).
 - **Tests:** `tests/m3a_tests.tscn` checks the M3a "Done when" criteria headless: bat pick up / holster / draw / drop and the knife swap, slot rules, loot table contents per type, punching a downed thug to death (and bat vs fists), knife kills without a knockout, knockout recovery (and the timer reset by hits), hold-to-search (tap does nothing, player held in place, cancel on release and on hit, pockets full), looting a dead body, the HUD, player death and restart. The M2 suite still passes.
 
-### M3b — District & first crime [Proposal: details]
+### M3b — District [Proposal: details]
+
+Goal: leave the gray-box levels. All further work happens in a small street environment. No police, no crime, no cars.
+
+| Task | Content | Done when |
+|---|---|---|
+| M3b.1 District block-out | Small part of Brickhaven in gray-box: a few streets, a square, alleys, houses (closed), enough line-of-sight breakers and low objects for crouch/cover later; lots reserved for the M5b shops and the M6 warehouse; navigation mesh baked | The player can walk the whole district without snagging; reserved lots are marked |
+| M3b.2 District gym | Combat test area inside the district (boxing gym or fenced yard) with the M2.8 enemy spawner and debug overlay; `combat_gym.tscn` stays as a debug scene | Fights can be started and restarted in the district gym without reloading |
+| M3b.3 Thug spawns | Thugs placed in alleys and around the gym, using the existing NPC controller and `CombatDirector` | Thugs engage the player in the streets as they do in the arena |
+| M3b.4 Civilian walkers | `NavigationAgent3D` civilians with simple routines (walk between points, idle); new civilian NPC type with its own `LootTable`; same health, hurtbox and inventory components as thugs | Civilians walk their routes; a civilian can be hit, knocked out and looted |
+| M3b.5 Civilian panic | Civilians near combat or a knocked-out/dead body flee; no reporting (that becomes the `WitnessComponent` in M5a) | Starting a fight on a street makes nearby civilians scatter |
+| M3b.6 Basic minimap | District map with the player position and orientation; no police data | The minimap matches the district layout while moving |
+
+**Done when:** spawn in the district, walk the streets among civilians, start a fight in the gym or an alley, civilians nearby scatter, and knocked-out civilians and thugs can be looted.
+
+### M4a — Combat update [Proposal: details]
+
+Goal: combat feels weighty and readable. Animations are final enough that timing and feel can be tuned on top of them. Tasks are listed in implementation order.
+
+| Task | Content | Done when |
+|---|---|---|
+| M4a.1 Animation pass | Review every clip; replace the generated placeholder combat clips and add new ones (Mixamo or other humanoid sources, retargeted via the humanoid bone map); clips include crouch locomotion and stomp; naming convention + a clip manifest (purpose, loop, approximate contact time) | All clips play on the character from a debug key; locomotion still meets the M1.7 criterion |
+| M4a.2 Clip-driven attack timing | Windup/active/recovery derived from animation markers or method tracks instead of hand-typed times; fixes the current attack speed | Every hit lands on the visible contact frame; no attack plays faster than its clip |
+| M4a.3 Combat feel tuning | Rebalance combos, hit stop, reactions and enemy telegraphs on the new clips | 1 vs. 1 and 1 vs. 3 in the district gym pass a playtest for weight and readability |
+| M4a.4 Crouch | Hold/toggle crouch; lower collision shape; ceiling check before standing up; crouch blend space; slower movement | Crouch-walking under low obstacles works; standing up under a ceiling is blocked |
+| M4a.5 Stomp | Context attack when a `knocked_out` target is in range; own `AttackData` with downed damage; soft targeting picks ground targets | A stomp hits the intended downed body and kills past the downed-damage threshold |
+| M4a.6 Inventory pause | Inventory overlay pauses the game (UI processes while paused); searching a body stays real-time; marked as temporary | Opening the inventory freezes enemies and civilians; closing it resumes cleanly |
+
+**Out of scope for M4a:** firearms and cover (M4b), crime/heat (M5a), stamina, finishers, stealth takedowns.
+
+### M4b — Firearms [Proposal: details]
+
+| Task | Content | Done when |
+|---|---|---|
+| M4b.1 Firearm & ammo | One firearm as `WeaponData` with firearm `AttackData`; fires along the M1.4 aim raycast; ammo as a pocket item; reload | Shots hit where the crosshair points; ammo is used up and reloaded from the inventory |
+| M4b.2 Weapon switching | Switch between unarmed, melee slot and firearm slot; holster/draw | Switching works mid-fight without breaking guard or aim states |
+| M4b.3 Cover | Sticky cover on a button; cover edges via raycasts; peek and aim over/around; works with crouch | The player can move along, peek from and leave cover without snagging or camera clipping |
+| M4b.4 Ranged enemy | Thug variant with a firearm; keeps distance and uses cover; `CombatDirector` limits simultaneous shooters | A mixed melee + ranged fight stays readable |
+| M4b.5 Balance pass | Melee vs. firearm damage, range and reward (§7) | Melee stays a valid choice against a mixed group |
+
+**Out of scope for M4b:** firearm use → heat (M5a).
+
+### M5a — Crime fundamentals [Proposal: details]
 
 | Task | Content |
 |---|---|
-| M3b.1 District block-out | Small part of Brickhaven in gray-box: a few streets, a square, alleys, enough line-of-sight breakers |
-| M3b.2 NPC walkers | `NavigationAgent3D` civilians following simple routines (walk between points, idle); builds on the M2.7 NPC controller |
-| M3b.3 Crime events | `CrimeManager` + crime definitions as `.tres` (incl. assault and killing); pickpocketing as an interaction (built on M1.5) that rolls the victim's `LootTable`; looting becomes a crime event |
-| M3b.4 Witnesses | `WitnessComponent`: field of view + line of sight; reactions: flee / call police; the report timer can be interrupted |
-| M3b.5 Heat level 1 | `HeatManager`: heat level, last known position, search radius that shrinks over time; heat state on the HUD; minimap showing the search area |
-| M3b.6 Police response | One patrol unit walks to the last known position and searches the area; minimal arrest = cash and pocket items confiscated + respawn |
+| M5a.1 Crime events | `CrimeManager` + crime definitions as `.tres` (incl. assault, killing and firearm use); pickpocketing as an interaction (built on M1.5) that rolls the victim's `LootTable`; looting becomes a crime event |
+| M5a.2 Witnesses | `WitnessComponent` (replaces the M3b panic reaction): field of view + line of sight; reactions: flee / call police; the report timer can be interrupted |
+| M5a.3 Heat level 1 | `HeatManager`: heat level, last known position, search radius that shrinks over time; heat state on the HUD; search area on the minimap |
+| M5a.4 Police response | One patrol unit walks to the last known position and searches the area; minimal arrest = cash and pocket items confiscated + respawn |
 
 **Done when:** the full chain plays out in the district: pickpocket → seen or unseen → report or prevented → patrol searches → escape or get arrested.
 
-### M5 — First progression loop [Proposal: details]
+### M5b — First progression loop [Proposal: details]
 
 | Task | Content |
 |---|---|
-| M5.1 WorldClock | Autoload clock, day counter, signals, "available again at" reset timestamps; HUD clock |
-| M5.2 Waiting | Benches and sit spots as `Interactable`s with "wait until…"; interrupted by heat or attacks |
-| M5.3 Interiors | First seamless interiors in the district: general store, melee shop, gun dealer back room |
-| M5.4 Shops | Buy UI driven by shop stock resources; opening hours from the clock |
-| M5.5 Shop robbery | Shopkeeper intimidation, register cash, witnesses inside; reset timer after a robbery |
-| M5.6 Heat level 2 | Foot pursuit and search area around the last sighting |
-| M5.7 First rank-up | Money/reputation threshold → first rank (depends on §6) |
+| M5b.1 WorldClock | Autoload clock, day counter, signals, "available again at" reset timestamps; HUD clock |
+| M5b.2 Waiting | Benches and sit spots as `Interactable`s with "wait until…"; interrupted by heat or attacks |
+| M5b.3 Interiors | First seamless interiors on the reserved lots: general store, melee shop, gun dealer back room |
+| M5b.4 Shops | Buy UI driven by shop stock resources; opening hours from the clock |
+| M5b.5 Shop robbery | Shopkeeper intimidation, register cash, witnesses inside; reset timer after a robbery |
+| M5b.6 Heat level 2 | Foot pursuit and search area around the last sighting |
+| M5b.7 First rank-up | Money/reputation threshold → first rank (depends on §6) |
 
 ### M6 — Nightlife [Proposal: details]
 
