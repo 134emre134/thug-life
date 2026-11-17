@@ -56,12 +56,12 @@ func synthesize(frequency: float, length: float, noise: float, seed_value: int) 
 		phase += TAU * frequency * (1.0 - 0.5 * progress) / mix_rate
 		var sample := sin(phase) * (1.0 - noise) + rng.randf_range(-1.0, 1.0) * noise
 		data.encode_s16(i * 2, int(clampf(sample * envelope, -1.0, 1.0) * 32767.0))
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = mix_rate
-	stream.stereo = false
-	stream.data = data
-	return stream
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = mix_rate
+	wav.stereo = false
+	wav.data = data
+	return wav
 
 
 func _on_hit_taken(

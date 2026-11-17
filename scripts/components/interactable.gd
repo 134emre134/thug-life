@@ -10,6 +10,8 @@ extends Area3D
 ## Emitted when an interactor (usually the player) uses this object.
 signal interacted(interactor: Node3D)
 ## Emitted when this becomes / stops being the interactor's current best target.
+## Emitted by [InteractionComponent], not by this class.
+@warning_ignore("unused_signal")
 signal focus_changed(focused: bool)
 
 const LAYER_INTERACTABLE := 1 << 3  # physics layer 4 "interactable"

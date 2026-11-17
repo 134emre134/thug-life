@@ -56,7 +56,8 @@ Each milestone is built on its own branch and merged by PR. A task is done when 
 assets/        art and audio. Binary formats go through Git LFS (.gitattributes)
   animations/  humanoid_tree.tres (shared AnimationTree), combat_placeholder.tres (generated),
                mixamorig9_bone_map.tres (retarget map), mixamo/*.fbx (one clip per file)
-  materials/   .tres materials (gray-box grid ShaderMaterials, solid colours)
+  materials/   .tres materials (gray-box grid ShaderMaterials, solid colours);
+               characters/ = external materials of the character model
   shaders/     .gdshader files
   models/      character models (player.fbx and the textures extracted from it on import)
   textures/ audio/
@@ -117,6 +118,8 @@ The player body mask is world + props + npc (NPC bodies: world + player + props 
 - **Navigation**: the arena bakes with `NavigationBaker.bake_csg_boxes()` (CPU-side source geometry from `CSGBox3D` sizes). The engine's CSG parser reads meshes back from the GPU and finds nothing headless. Bake into a *new* `NavigationMesh` (re-assigning the region's own resource doesn't update the server), and the map syncs asynchronously: `combat_gym.gd` waits until the region owns the map before spawning NPCs.
 - **The character model faces +Z** (Mixamo); `Model/Character` is turned 180° in the scenes. Clips and the placeholder generator work in the skeleton's own space (+Z forward, character's right = −X).
 - **Retargeted import**: models and clips import with `retarget/bone_map = mixamorig9_bone_map.tres`, so bones have humanoid names (`Hips`, `LeftUpperArm`, …) and the skeleton is the unique node `%GeneralSkeleton`; clip tracks are `%GeneralSkeleton:<Bone>`. Hips position tracks are stored divided by `Skeleton3D.motion_scale` (hip height) and scaled back on playback. A Mixamo download with another prefix (`mixamorig_`) needs its own map: `godot --headless --script res://scripts/tools/generate_mixamo_bone_map.gd -- mixamorig_`.
+- **Character materials are external** (`assets/materials/characters/*.tres`, wired in `player.fbx.import` under `_subresources.materials`). The FBX importer's own materials came out untextured, taking their colour from vertex colours the mesh doesn't have (grey and see-through in game). A new model needs the same: one material per surface with its albedo and normal textures.
+- **Keep GDScript warnings at zero.** The editor and VS Code's Problems panel show them; the debug console lists them when the game starts.
 - **Ragdoll**: `RagdollComponent` builds `PhysicalBone3D`s under the skeleton at knockout (runtime, so the imported scene stays untouched) and frees them on revive.
 - **Downed bodies**: a knocked-out NPC's `HurtboxComponent.follow` is set to the ragdoll's root body, so the standing-size hurtbox stays over the body and normal attacks still hit it (downed damage). Dead bodies disable the hurtbox. `apply_knockback` on a downed character goes to `RagdollComponent.apply_impulse`. On recovery `NpcCharacter` moves the body to where the ragdoll's pelvis lies before stopping the simulation. The player's hurtbox is still switched off when downed (thugs never attack downed targets).
 - **Searching uses held interactions**: `InteractionComponent.try_interact()` ignores interactables with a `hold_time`; the player drives them through `update_hold()` each tick (only while combat is idle and on the floor), and is held in place meanwhile. A landed hit cancels it.
