@@ -57,7 +57,7 @@ assets/        art and audio. Binary formats go through Git LFS (.gitattributes)
                mixamorig9_bone_map.tres (retarget map), mixamo/*.fbx (one clip per file)
   materials/   .tres materials (gray-box grid ShaderMaterials, solid colours)
   shaders/     .gdshader files
-  models/      character models (player.fbx; textures extracted on import are git-ignored)
+  models/      character models (player.fbx and the textures extracted from it on import)
   textures/ audio/
 data/          data-driven content as .tres/.json
   attacks/     AttackData (one per punch/swing)
