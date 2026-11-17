@@ -92,24 +92,36 @@ shown for a second). Not used by gameplay yet:
 | `crouch_pose_male`, `crouch_pose_female` | Male / Female Crouch Pose.fbx | single frame | crouched cover pose (M4b) |
 | `knife_stab_left_hand` | StabbingRightArm.fbx | no | a left-hand stab |
 
-## Firearms (M4b, renamed but not wired)
+## Firearms (M4b)
 
 All of these hold a rifle (both hands at chest height, left hand forward). Ground speeds are the drift the
-import removed (they were downloaded without "In Place").
+import removed (they were downloaded without "In Place"); directions measured from the raw drift
+(character's left = +X in skeleton space). The aim clips hold the rifle about 28° left of the character's
+forward (measured hand to hand on `rifle_aim_idle`), so the body turns 28° right while aiming
+(`FirearmData.aim_yaw_offset_degrees`).
 
-| Clip | Source file | Loop | Speed (m/s) |
-|---|---|---|---|
-| `rifle_aim_idle` | rifle aiming idle.fbx | yes | – |
-| `rifle_fire` | firing rifle.fbx | no (0.27 s) | – |
-| `rifle_reload` | reloading.fbx | no (3.30 s) | – |
-| `rifle_hit_react` | hit reaction.fbx | no (0.43 s) | – |
-| `rifle_jump` | rifle jump.fbx | no | – |
-| `rifle_walk`, `rifle_walk_backward` | walking.fbx, walking backwards.fbx | yes | 0.97, 1.05 |
-| `rifle_run`, `rifle_run_backward` | rifle run.fbx, run backwards.fbx | yes | 2.93, 2.67 |
-| `rifle_strafe`, `rifle_strafe_2` | strafe.fbx, strafe (2).fbx | yes | 3.20, 2.74 (check direction) |
-| `rifle_strafe_left`, `rifle_strafe_right` | strafe left.fbx, strafe right.fbx | yes | 1.35, 0.73 |
-| `rifle_turn_left`, `rifle_turn_right_45` | turn left.fbx, turning right 45 degrees.fbx | no | – |
-| `grenade_toss` | toss grenade.fbx | no (3.20 s) | – |
+| Clip | Source file | Used as | Loop | Speed (m/s) / markers |
+|---|---|---|---|---|
+| `rifle_aim_idle` | rifle aiming idle.fbx | `rifle_strafe` point (0, 0); `rifle_ready` upper-body pose (guard_clip layer) while a rifle is held | yes | – |
+| `rifle_walk`, `rifle_run` | walking.fbx, rifle run.fbx | `rifle_strafe` forward points | yes | 0.97, 2.93 |
+| `rifle_walk_backward`, `rifle_run_backward` | walking backwards.fbx, run backwards.fbx | `rifle_strafe` backward points | yes | 1.05, 2.67 |
+| `rifle_strafe_left`, `rifle_strafe_2` | strafe left.fbx, strafe (2).fbx | `rifle_strafe` left points (`rifle_strafe_2` is a fast **left** strafe) | yes | 1.35, 2.74 |
+| `rifle_strafe_right`, `rifle_strafe` | strafe right.fbx, strafe.fbx | `rifle_strafe` right points (`rifle_strafe` is a fast **right** strafe) | yes | 0.73, 3.20 |
+| `rifle_fire` | firing rifle.fbx | Upper-body one-shot per shot (`upper_clip`) | no (0.27 s) | – |
+| `rifle_reload` | reloading.fbx | Upper-body reload (`upper_clip`) | no (3.30 s) | reload 1.60 (magazine in), end 2.50 |
+| `rifle_hit_react` | hit reaction.fbx | Flinch while holding a rifle (`WeaponData.flinch_clips`) | no (0.43 s) | – |
+| `rifle_jump` | rifle jump.fbx | F4 only (the normal jumps play with the rifle pose on the upper body) | no | – |
+| `rifle_turn_left`, `rifle_turn_right_45` | turn left.fbx, turning right 45 degrees.fbx | F4 only (no turn-in-place yet) | no | – |
+| `grenade_toss` | toss grenade.fbx | not wired (grenades are out of scope) | no (3.20 s) | – |
+
+Not aiming, a held rifle is the `rifle_ready` pose on the upper body over the normal locomotion. Its hips
+differ from the M1 idle, so the rifle points further left (about 60°) than when aiming: reads as a low
+carry, but a real carry/low-ready pose is missing (below).
+
+### Cover (M4b.3): no clips
+
+Cover uses the crouch layer behind low cover and the standing idle / rifle pose behind high cover; the
+character faces the wall. `crouch_pose_male` / `crouch_pose_female` are still only on F4.
 
 ## Still missing (placeholders or nothing)
 
@@ -121,3 +133,12 @@ import removed (they were downloaded without "In Place").
 - Knife: a second right-hand stab (the combo repeats `knife_stab_straight`) and a knife guard.
 - Crouched strafing / guard (the crouch layer only has idle and forward walk; combat stands up first).
 - Optional: a dedicated falling loop matching the new jumps (the M1 `fall` clip is kept).
+- **Firearm (M4b):** a rifle **carry / low-ready** pose and carry locomotion (walk, run, sprint with the
+  rifle down), **aim up / down** offsets (the aim clips only aim straight ahead; there is no spine pitch),
+  **crouched aim** idle and crouched rifle walk, a **holster / draw** clip for weapon switching,
+  a short **rifle butt** melee strike (with a rifle in hand the attack button only fires), rifle
+  **knockdown / death** variants.
+- **Cover (M4b):** cover idle **low** (crouched, back or shoulder to the wall) and **high** (standing),
+  cover **move left / right** for both, **pop up** over low cover and **peek left / right** around high
+  cover (with the rifle), **enter / exit** cover transitions.
+- Crouched strafing left / right (also needed for low-cover movement: the crouch walk plays forward now).

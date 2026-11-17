@@ -78,10 +78,10 @@ _What does a typical 10-minute session look like?_ — **must be defined before 
 - **[Decided]** Crouch exists (M4a) and cover exists (M4b)
 - **[Proposal] Crouch:** toggle by default, hold as an option (M4a); lower collision shape, ceiling check before standing up, slower movement, crouch blend space; crouching behind low objects breaks line of sight (pays off with witnesses in M5a)
 - **[Open] Crouched combat:** M4a stands the player up for any combat action (there are no crouched combat clips). Whether attacks, guard or a takedown from crouch should exist is open; must not be designed out.
-- **[Proposal] Cover:** sticky cover on a button; cover edges detected via raycasts; peek and aim over/around; works from standing and crouched positions; built with firearms because ranged enemies are what make it testable
+- **[Proposal] Cover:** sticky cover on a button; cover edges detected via raycasts; peek and aim over/around; works from standing and crouched positions; built with firearms because ranged enemies are what make it testable (built in M4b, see the M4b notes)
 
 ### Still open [Open]
-- Melee vs. firearms balance (M4b).
+- Melee vs. firearms balance (M4b). A first pass is built and documented as a proposal in the M4b implementation notes (§19); it needs the playtest.
 - Stealth takedowns, finishers, environmental attacks (later; must not be designed out).
 
 ## 8. Police & Crime [Proposal]
@@ -173,7 +173,7 @@ Minimal and readable; elements appear with the milestone that gives them meaning
 |---|---|---|
 | Cash | M3a | Wallet value |
 | Health | M3a | From `HealthComponent` |
-| Equipped weapon | M3a / M4b | Ammo count from M4b |
+| Equipped weapon | M3a / M4b | Ammo count from M4b: rounds / magazine size and spare magazines ("5 / 8  +2"), a hit marker on landed shots |
 | Minimap | M3b / M5a | M3b: basic navigation map of the district. M5a: adds the police **search area** around the last known position, **never live police positions** (§8) |
 | Heat state | M5a | Named states (Suspicion / Pursuit / Manhunt), not stars |
 | Clock | M5b | In-game time and day |
@@ -461,6 +461,40 @@ What was built, and where it deviates from the table above. All numbers are star
 | M4b.5 Balance pass | Melee vs. firearm damage, range and reward (§7) | Melee stays a valid choice against a mixed group |
 
 **Out of scope for M4b:** firearm use → heat (M5a).
+
+#### M4b implementation notes [Proposal: awaiting playtest]
+
+What was built, and where it deviates from the table above. All numbers are starting values in `.tres`/`@export`s/`clip_data.json`, to be tuned in playtest. The rifle clips are listed in [`assets/animations/CLIPS.md`](../assets/animations/CLIPS.md).
+
+- **M4b.1 — Firearm and ammo.**
+  - **The firearm is a rifle** (the user's clips are all rifle clips): `data/items/rifle.tres`, a `FirearmData` (extends `WeaponData`) in the firearm slot. Its shot is `data/attacks/rifle_shot.tres`: damage type firearm (lethal), a flinch, light knockback, **can't be blocked** (new `AttackData.can_be_blocked`). Semi-automatic: one shot per press, at most every 0.32 s, range 60 m.
+  - **Firing** (`RangedCombat`, a new component next to `MeleeCombat`): RMB aims (the M1.4 aim mode, now used: camera closer, lower FOV, strafing, crosshair), LMB fires a ray from the chest at the crosshair point, the same line `PlayerAim` checks, so the red "blocked" marker means the shot hits the cover in front. Spread 0.25° standing, up to +2° when moving. **Added — hip fire:** LMB without RMB raises the rifle for 0.8 s and fires once it is up (0.15 s), +2.5° spread. The body turns 28° so the rifle in the aim clips points where the shot goes.
+  - **Ammo:** a **rifle magazine** is a pocket item (`data/items/rifle_magazine.tres`); one item = one full magazine of 8. **R** reloads: the magazine goes in at the reload clip's `reload` marker (1.6 s), the reload ends at 2.5 s. The rounds left in the old magazine are lost (**deviation/proposal**: magazine-based, no loose rounds). An interrupted reload (hit, switch) before the marker costs nothing; firing an empty magazine reloads by itself when a magazine is carried, otherwise it clicks. A dropped rifle keeps its rounds.
+  - **Feedback:** muzzle flash (light + quad), tracer, impact puff (red on a character), synthesized gunshot and dry click, camera kick (1°) and shake, a HUD hit marker (red on a kill). Hits use the normal hurtbox path: hit stop, flinch, knockback, firearm lethality; shots at a knocked-down (not knocked-out) target land too (no knockdown i-frames, M4a).
+  - **Clips:** aiming uses a rifle strafe blend space (9 rifle clips at their ground speeds); firing and reloading are upper-body one-shots, so the legs keep moving; a held rifle shows the rifle aim pose on the upper body; `rifle_hit_react` is the flinch with a rifle in hand (`WeaponData.flinch_clips`).
+  - **Where to find one:** a rifle and two magazines are laid out in the district gym yard and the arena (with the bats and the knife), one rifle and a magazine lie in the **south-west back alley** behind a dumpster (`Stash`, among the street thugs), and rifle thugs drop theirs (and carry magazines: 80% one, 30% a second).
+  - **Crime hook:** shots are reported through the shooter's `MeleeCombat`: `shot_fired(shooter, weapon)` for every shot and `hit_landed(attacker, victim, attack)` for landed ones, so the M5a `CrimeManager` only needs the "combatants" group.
+- **M4b.2 — Weapon switching.** The M3a firearm slot is unlocked. Hands: unarmed, melee slot, firearm slot; **1** fists, **2** melee weapon, **3** firearm, **mouse wheel** cycles through what is carried, **H** holsters / draws the last weapon, **G** drops the weapon in hand (with nothing in hand: the melee weapon, as in M3a). A new pickup ends up in hand. RMB means guard with fists or a melee weapon and aim with a firearm, decided every tick from what is in hand, so holding RMB through a switch goes straight from guard to aim and back. A switch waits until combat allows it (never mid-swing or mid-reaction; an attack's recovery is fine) and cancels a reload. **Deviation:** switching is instant, there are no holster/draw clips.
+- **M4b.3 — Cover.** **F** takes cover (`CoverComponent`):
+  - **Detection:** rays at knee height (0.4 m) in the move direction (or the look direction) find a wall within 1.2 m; a ray at chest height (1.45 m) tells high cover from low. Low objects from about 0.45 m count; the district's 0.45–0.9 m objects are low cover, walls, cars above 1.45 m and buildings are high cover.
+  - **In cover** the character slides in, keeps 8 cm from the wall (a ray keeps measuring it), faces the wall, and input moves it only along the wall (1.3 m/s crouched, 1.8 m/s standing). Rays beside the body find the edges: it stops 0.2 m inside them instead of walking off. Behind low cover it crouches (M4a crouch, smaller hurtbox).
+  - **Peek and aim:** aiming behind low cover stands up over it; aiming at an edge of high cover steps 0.75 m out around it (the camera moves to that shoulder) and back in when the aim is released. Aiming away from an edge of high cover is allowed, the blocked marker shows the wall.
+  - **Leave:** F again, holding away from the wall for 0.3 s, sprinting, jumping, any melee action, or losing the wall. Snagging can't happen (the movement is a fixed-distance slide), and the camera's own sweeps keep it out of walls (both checked headless).
+  - **Deviation:** no cover clips exist: the crouch clips and the standing / rifle poses stand in; the missing clips are listed in CLIPS.md. Melee from cover leaves cover first.
+- **Added — crouched hurtbox:** crouching shrinks the hurtbox with the body capsule (player and NPCs), so low cover really hides a crouched body from shots.
+- **M4b.4 — Ranged enemy.** `scenes/npc/rifle_thug.tscn` (inherits `thug.tscn`, tan tint, `RangedThugAI`, own loot `data/loot/rifle_thug.tres`: $20–60, magazines, phone) and `street_rifle_thug.tscn` (aggro 14 m, lost beyond 26 m).
+  - **Behaviour:** keeps 8–16 m from its target, **takes cover** (no authored markers: it samples navmesh points within 9 m and keeps those with an obstacle right in front that hides a crouched body but not a standing one), crouches there, then asks the `CombatDirector` for a **shooter token**, stands up and aims.
+  - **Telegraph:** 0.9 s of a red laser from the muzzle (brightening) and the red glow of a melee windup before the first shot; then a burst of 1–2 shots 0.6 s apart. The aim follows the target **0.3 s late**, so a target that keeps moving is missed and one that stands still is hit (headless: 4/4 standing, 1/5 strafing).
+  - **Distance:** a target closer than 5 m makes it back off (walking backwards, slower than a sprint) before it starts aiming; a cornered thug shoots anyway, still telegraphed. Empty magazine: reloads in cover (endless ammo, but the reload is a window to rush it).
+  - **Shooter limit:** a separate token pool in `CombatDirector`: 1 shooter at a time, at least 0.8 s between grants, 1 s of quiet after a shooter is done, 2 s before the same thug again. Melee and shooter tokens don't share a pool (2 melee attackers + 1 shooter at most).
+  - **Fights:** the F6 cycle has a fourth mode, **mixed** (2 thugs + 2 rifle thugs), in the district gym and the arena; the arena got two more low covers for it. The district population has two street rifle thugs (south-east back alley, Old Quay by the crane).
+- **M4b.5 — Balance, first pass ([Proposal]; GDD §7 "melee vs. firearms" stays [Open] until the playtest).**
+  - **Damage:** player rifle 34 per shot (3 shots kill a thug, 4 a collector; downed bodies take ×4). Rifle thug shots deal 15 (`thug_rifle_shot.tres`, `RangedCombat.attack_override`): 10 hits down the player.
+  - **Range vs. melee:** rifles reach 60 m but fire only every 0.32 s, carry 8 rounds and need 2.5 s to reload; magazines are scarce (one per rifle thug on average, none for sale until M5b). Melee is free, quiet and non-lethal (knockouts, which matters once killing is a separate crime in M5a, §8).
+  - **Melee stays valid:** shots can't be blocked, but they are telegraphed and lag behind a moving target, and dodges (i-frames) avoid them; rifle thugs back off instead of shooting when rushed, slower than a sprint. Headless check: a player with fists runs down and knocks out a rifle thug without losing health in a 1 vs 1; in the mixed fight never more than 2 melee attackers and 1 shooter are active.
+  - **Reward:** rifle thugs carry more cash ($20–60 vs $5–30) and the magazines; the rifle itself drops.
+- **Not built / open:** firearm use → heat (M5a). Whether ammo should be rounds instead of magazines, whether a rifle should have a melee strike, aiming while crouched behind low cover without standing, NPC flanking and grenades are open questions for the playtest. NPCs don't pick up dropped rifles.
+- **Tests:** `tests/m4b_tests.tscn` checks the "Done when" criteria headless in the real arena and district: shots hit under the crosshair at 3 m and 14 m and miss beside it, shots end on the crosshair point and stop where the line of fire is blocked (behind a pillar), a knocked-down target is hit; ammo is used up, dry-fires, reloads from picked-up magazines at the clip marker, interrupted reloads cost nothing, auto-reload; switching with keys, wheel and H, the HUD and overlay, dropping with rounds; switching mid-fight keeps guard and aim right, waits for a swing and a reaction, cancels a reload; low cover (enter, slide to both edges, aim over, leave by key and by pulling away) and high cover (edge, peek around, back), camera never inside geometry; the rifle thug takes cover, telegraphs every burst, hits a standing and misses a moving player, backs off; never more than one shooter among three rifle thugs; fists beat a rifle thug; the mixed gym fight runs; rifle thugs and the rifle stash in the district. The M2, M3a, M3b and M4a suites still pass (pickup counts include the rifle; the firearm slot is unlocked; rifle clips are wired).
 
 ### M5a — Crime fundamentals [Proposal: details]
 
